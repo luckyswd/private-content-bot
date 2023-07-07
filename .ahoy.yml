@@ -1,0 +1,66 @@
+ahoyapi: v2
+commands:
+
+    up:
+        cmd: "ahoy stop && docker-compose up --build -d"
+        usage: Create and run docker services.
+
+    down:
+        cmd: "docker-compose down $@"
+        usage: Stop the docker-compose containers.
+
+    start:
+        cmd: docker-compose start "$@"
+        usage: Start the docker-com stpose containers.
+
+    stop:
+        cmd: docker-compose stop "$@"
+        usage: Stop the docker-compose containers.
+
+    console:
+        cmd: 'docker exec -it private-content-bot-php bin/console $@'
+        usage: Run console commands without having to cd to the project root first.
+
+    test:
+        cmd: 'docker exec -it private-content-bot-php bin/phpunit'
+        usage: Use composer to install behat dependencies.
+
+    cc:
+        cmd: 'docker exec -it private-content-bot-php bin/console cache:clear'
+        usage: Clear cache for a specified environment.
+
+    cct:
+        cmd: 'docker exec -it private-content-bot-php bin/console cache:pool:clear memcached.cache.tokens'
+        usage: Clear cache for a specified environment.
+
+    schema:update:
+        cmd: 'docker exec private-content-bot-php bin/console doctrine:schema:drop --force && docker exec private-content-bot-php bin/console doctrine:schema:create'
+        usage: Run console commands doctrine:schema:drop --force && doctrine:schema:create
+
+    migrate:
+        cmd: 'ahoy cc && docker exec -it private-content-bot-php bin/console doctrine:migrations:migrate --no-interaction'
+        usage: Run console commands doctrine:migrations:migrate.
+
+    force:
+        cmd: 'ahoy cc && docker exec private-content-bot-php bin/console doctrine:schema:update --dump-sql --force'
+        usage: Run console commands doctrine:schema:update --dump-sql
+
+    fm:
+        cmd: 'ahoy cc && docker exec private-content-bot-php bin/console doctrine:schema:update --dump-sql --force && docker exec -it private-content-bot-php bin/console doctrine:migrations:migrate --no-interaction'
+        usage: Run console commands doctrine:schema:update --dump-sql and run console commands doctrine:migrations:migrate
+
+    fixture:
+        cmd: 'docker exec private-content-bot-php bin/console doctrine:fixtures:load'
+        usage: Load fixtures
+
+    composer:
+        cmd: 'docker exec private-content-bot-php composer $@'
+        usage: Run composer commands without having to cd to the project root first.
+
+    db:backup:
+        cmd: 'docker exec pharmacy-api_percona /usr/bin/mysqldump -u pharmacy-apiuser --password=pharmacy-apipass pharmacy-api > backup.sql'
+        usage: Backup
+
+    db:drop:
+        cmd: 'docker exec -it private-content-bot-php bin/console --env=dev doctrine:schema:drop --full-database --force'
+        usage: Drop all tables
