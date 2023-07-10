@@ -14,7 +14,7 @@ class TelegramBotHandler
 
     public function __construct()
     {
-        $this->telegram = new Telegram(getenv('BOT_API_KEY'), getenv('BOT_USERNAME'));
+        $this->telegram = new Telegram(getenv('BOT_TOKEN'), getenv('BOT_USERNAME'));
     }
 
     public function setWebhook(): string|null
@@ -48,9 +48,11 @@ class TelegramBotHandler
 
 
             $telegramService = new TelegramService();
-
-//            $telegramService->setToDbPostId($this->getUpdate(), getenv('ADMIN_GROUP_ID'));
-//            $telegramService->forwardMessage(['22'],getenv('ADMIN_GROUP_ID'), 725014793);
+            $telegramService->forwardMessage(
+                6,
+                getenv('ADMIN_GROUP_ID'),
+                725014793,
+            );
 
         } catch (TelegramException $e) {
             var_dump($e->getMessage());
