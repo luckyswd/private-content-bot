@@ -19,10 +19,6 @@ class Rate extends BaseEntity
     #[ORM\Column(type: 'dateinterval', nullable: false)]
     private DateInterval $duration;
 
-    public function __construct()
-    {
-    }
-
     public function getName(): string
     {
         return $this->name;

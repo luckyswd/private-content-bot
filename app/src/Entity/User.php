@@ -23,7 +23,7 @@ class User extends BaseEntity
         $this->subscriptions = new ArrayCollection();
     }
 
-    public function getSubscriptions(): ArrayCollection
+    public function getSubscriptions():Collection
     {
         return $this->subscriptions;
     }
