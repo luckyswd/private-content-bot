@@ -13,24 +13,28 @@ class WebhookController extends AbstractController
     #[Route('/set', name: 'set_webhook')]
     public function set(
         TelegramBotHandler $telegramBotHandler
-    ): JsonResponse {
+    ): JsonResponse
+    {
         return $this->json([
             'message' => $telegramBotHandler->setWebhook(),
         ]);
     }
+
     #[Route('/delete', name: 'delete_webhook')]
     public function delete(
         TelegramBotHandler $telegramBotHandler
-    ): JsonResponse {
+    ): JsonResponse
+    {
         return $this->json([
             'message' => $telegramBotHandler->deleteWebhook(),
         ]);
     }
+
     #[Route('/handle', name: 'handle_webhook')]
     public function handle(
         TelegramBotHandler $telegramBotHandler,
-    ): JsonResponse {
-
+    ): JsonResponse
+    {
         return $this->json([
             'message' => $telegramBotHandler->handleWebhook(),
         ]);
