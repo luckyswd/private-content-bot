@@ -3,6 +3,7 @@
 namespace App\Handler;
 
 use App\Service\TelegramService;
+use App\Telegram\Commands\StartCommand;
 use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Telegram;
@@ -45,17 +46,18 @@ class TelegramBotHandler
     {
         try {
             $this->telegram->handle();
-
-
             $telegramService = new TelegramService();
-            $telegramService->forwardMessage(
-                6,
-                getenv('ADMIN_GROUP_ID'),
-                725014793,
-            );
+            $telegramService->startCommand($this->getUpdate());
+            $telegramService->handleButton($this->getUpdate());
+            // Пример как переслать сообщения
+//            $telegramService->forwardMessage(
+//                6,
+//                getenv('ADMIN_GROUP_ID'),
+//                725014793,
+//            );
 
         } catch (TelegramException $e) {
-            var_dump($e->getMessage());
+            $e->getMessage();
         }
 
         return [];

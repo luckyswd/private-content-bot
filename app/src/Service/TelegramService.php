@@ -2,6 +2,10 @@
 
 namespace App\Service;
 
+use Longman\TelegramBot\Entities\CallbackQuery;
+use Longman\TelegramBot\Entities\InlineKeyboard;
+use Longman\TelegramBot\Entities\InlineKeyboardButton;
+use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Request;
 use GuzzleHttp\Client;
 
@@ -13,7 +17,6 @@ class TelegramService
     ): int|null
     {
         $allPosts = $this->getAllPosts();
-        var_dump($allPosts);
         foreach ($allPosts as $key => $post) {
             if (++$key == $orderNumber) {
                 return $post['message']['message_id'];
@@ -42,8 +45,8 @@ class TelegramService
     }
     public function forwardMessage(
         ?int $orderNumber,
-        int $groupIdFrom,
-        int $chatIdTo,
+        int  $groupIdFrom,
+        int  $chatIdTo,
     ): void
     {
         $postId = $this->getPostId($orderNumber);
@@ -62,5 +65,66 @@ class TelegramService
             'message_id' => $postId,
             'protect_content' => true,
         ]);
+    }
+    public function startCommand(
+        Update $update
+    ): void
+    {
+        if ($update->getCallbackQuery() instanceof CallbackQuery) {
+            return;
+        }
+        $chatId = $update->getMessage()->getChat()->getId();
+        $message = $update->getMessage()->getText();
+        if ($message !== '/start') {
+            return;
+        }
+        $welcomeText = 'Приветствую! Выберите действие:';
+        $inlineKeyboard = new InlineKeyboard(
+            [
+                new InlineKeyboardButton(['text' => 'Кнопка 1', 'callback_data' => 'button1']),
+                new InlineKeyboardButton(['text' => 'Кнопка 2', 'callback_data' => 'button2']),
+                new InlineKeyboardButton(['text' => 'Кнопка 3', 'callback_data' => 'button3']),
+            ]
+        );
+        $data = [
+            'chat_id' => $chatId,
+            'text' => $welcomeText,
+            'reply_markup' => $inlineKeyboard,
+        ];
+
+        Request::sendMessage($data);
+    }
+
+    public function handleButton(
+        Update $update
+    ): void
+    {
+        if (!($update->getCallbackQuery() instanceof CallbackQuery)) {
+            return;
+        }
+        $callbackQuery = $update->getCallbackQuery();
+        $chatId = $callbackQuery->getFrom()->getId();
+        $callbackData = $callbackQuery->getData();
+        if ($callbackData == 'button1') {
+            $data = [
+                'chat_id' => $chatId,
+                'text' => 'button1',
+            ];
+            Request::sendMessage($data);
+        }
+        if ($callbackData == 'button2') {
+            $data = [
+                'chat_id' => $chatId,
+                'text' => 'button2',
+            ];
+            Request::sendMessage($data);
+        }
+        if ($callbackData == 'button3') {
+            $data = [
+                'chat_id' => $chatId,
+                'text' => 'button3',
+            ];
+            Request::sendMessage($data);
+        }
     }
 }
