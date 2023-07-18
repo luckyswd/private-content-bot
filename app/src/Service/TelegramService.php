@@ -2,20 +2,58 @@
 
 namespace App\Service;
 
-use Longman\TelegramBot\Entities\CallbackQuery;
-use Longman\TelegramBot\Entities\InlineKeyboard;
-use Longman\TelegramBot\Entities\InlineKeyboardButton;
 use Longman\TelegramBot\Entities\Update;
+use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Request;
 use GuzzleHttp\Client;
-
+use Longman\TelegramBot\Telegram;
 
 class TelegramService
 {
+    private ?Telegram $telegram = null;
+
+    public function setWebhook(): string|null {
+        try {
+            $result = $this->getTelegram()->setWebhook(getenv('HOOK_URL'));
+
+            if ($result->isOk()) {
+                return $result->getDescription();
+            }
+
+            return null;
+        } catch (TelegramException $e) {
+            return $e->getMessage();
+        }
+    }
+
+    public function deleteWebhook(): string {
+        try {
+            $result = $this->getTelegram()->deleteWebhook();
+
+            return $result->getDescription();
+        } catch (TelegramException $e) {
+            return $e->getMessage();
+        }
+    }
+
+    public function getTelegram(): Telegram {
+        if (!$this->telegram) {
+            $this->telegram = new Telegram(getenv('BOT_TOKEN'), getenv('BOT_USERNAME'));
+        }
+
+        return $this->telegram;
+    }
+
+    public static function getUpdate(): Update {
+        $input = Request::getInput();
+        $post = json_decode($input, true);
+
+        return new Update($post, getenv('BOT_USERNAME'));
+    }
+
     public function getPostId(
         int $orderNumber,
-    ): int|null
-    {
+    ): int|null {
         $allPosts = $this->getAllPosts();
         foreach ($allPosts as $key => $post) {
             if (++$key == $orderNumber) {
@@ -25,8 +63,8 @@ class TelegramService
 
         return null;
     }
-    private function getAllPosts(): array
-    {
+
+    private function getAllPosts(): array {
         $botToken = getenv('ADMIN_BOT_TOKEN');
         $client = new Client([
             'base_uri' => 'https://api.telegram.org/bot' . $botToken . '/',
@@ -43,6 +81,7 @@ class TelegramService
 
         return $data['result'];
     }
+
     public function forwardMessage(
         ?int $orderNumber,
         int  $groupIdFrom,
@@ -65,66 +104,5 @@ class TelegramService
             'message_id' => $postId,
             'protect_content' => true,
         ]);
-    }
-    public function startCommand(
-        Update $update
-    ): void
-    {
-        if ($update->getCallbackQuery() instanceof CallbackQuery) {
-            return;
-        }
-        $chatId = $update->getMessage()->getChat()->getId();
-        $message = $update->getMessage()->getText();
-        if ($message !== '/start') {
-            return;
-        }
-        $welcomeText = 'Приветствую! Выберите действие:';
-        $inlineKeyboard = new InlineKeyboard(
-            [
-                new InlineKeyboardButton(['text' => 'Кнопка 1', 'callback_data' => 'button1']),
-                new InlineKeyboardButton(['text' => 'Кнопка 2', 'callback_data' => 'button2']),
-                new InlineKeyboardButton(['text' => 'Кнопка 3', 'callback_data' => 'button3']),
-            ]
-        );
-        $data = [
-            'chat_id' => $chatId,
-            'text' => $welcomeText,
-            'reply_markup' => $inlineKeyboard,
-        ];
-
-        Request::sendMessage($data);
-    }
-
-    public function handleButton(
-        Update $update
-    ): void
-    {
-        if (!($update->getCallbackQuery() instanceof CallbackQuery)) {
-            return;
-        }
-        $callbackQuery = $update->getCallbackQuery();
-        $chatId = $callbackQuery->getFrom()->getId();
-        $callbackData = $callbackQuery->getData();
-        if ($callbackData == 'button1') {
-            $data = [
-                'chat_id' => $chatId,
-                'text' => 'button1',
-            ];
-            Request::sendMessage($data);
-        }
-        if ($callbackData == 'button2') {
-            $data = [
-                'chat_id' => $chatId,
-                'text' => 'button2',
-            ];
-            Request::sendMessage($data);
-        }
-        if ($callbackData == 'button3') {
-            $data = [
-                'chat_id' => $chatId,
-                'text' => 'button3',
-            ];
-            Request::sendMessage($data);
-        }
     }
 }

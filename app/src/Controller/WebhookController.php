@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use App\Handler\TelegramBotHandler;
+use App\Service\TelegramService;
+use Longman\TelegramBot\Exception\TelegramException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
@@ -12,31 +14,40 @@ class WebhookController extends AbstractController
 {
     #[Route('/set', name: 'set_webhook')]
     public function set(
-        TelegramBotHandler $telegramBotHandler
-    ): JsonResponse
-    {
+        TelegramService $telegramService,
+    ): JsonResponse {
         return $this->json([
-            'message' => $telegramBotHandler->setWebhook(),
+            'message' => $telegramService->setWebhook(),
         ]);
     }
 
     #[Route('/delete', name: 'delete_webhook')]
     public function delete(
-        TelegramBotHandler $telegramBotHandler
-    ): JsonResponse
-    {
+        TelegramService $telegramService,
+    ): JsonResponse {
         return $this->json([
-            'message' => $telegramBotHandler->deleteWebhook(),
+            'message' => $telegramService->deleteWebhook(),
         ]);
     }
 
     #[Route('/handle', name: 'handle_webhook')]
     public function handle(
         TelegramBotHandler $telegramBotHandler,
-    ): JsonResponse
-    {
+        TelegramService $telegramService,
+    ): JsonResponse {
+        try {
+            $telegramService->getTelegram()->handle();
+            $telegramBotHandler->handelStartMessage();
+            $telegramBotHandler->handleRateButtons();
+            $telegramBotHandler->handlePaymentsMethods();
+
+            $result = 'ok';
+        } catch (TelegramException|\Error $e) {
+            $result = $e->getMessage();
+        }
+
         return $this->json([
-            'message' => $telegramBotHandler->handleWebhook(),
+            'message' => $result,
         ]);
     }
 }

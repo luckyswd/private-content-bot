@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Repository\RateRepository;
 use DateInterval;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: RateRepository::class)]
@@ -13,11 +15,21 @@ class Rate extends BaseEntity
     #[ORM\Column(type: 'string', length: '50', unique: true, nullable: false)]
     private string $name;
 
-    #[ORM\Column(type: 'text', nullable: false)]
-    private string $price;
-
     #[ORM\Column(type: 'dateinterval', nullable: false)]
     private DateInterval $duration;
+
+    #[ORM\OneToMany(mappedBy: 'rate', targetEntity: Price::class, cascade: ['persist'], fetch: "EAGER")]
+    private Collection $prices;
+
+    public function __construct()
+    {
+        $this->prices = new ArrayCollection();
+    }
+
+    public function getPrices(): Collection
+    {
+        return $this->prices;
+    }
 
     public function getName(): string
     {
@@ -27,18 +39,6 @@ class Rate extends BaseEntity
     public function setName(string $name): self
     {
         $this->name = $name;
-
-        return $this;
-    }
-
-    public function getPrice(): string
-    {
-        return $this->price;
-    }
-
-    public function setPrice(string $price): self
-    {
-        $this->price = $price;
 
         return $this;
     }

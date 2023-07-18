@@ -52,7 +52,6 @@ class InitCommand extends Command
         foreach ($ratesArray as $item) {
             $rate = new Rate();
             $rate->setName($item['name']);
-            $rate->setPrice($item['price']);
 
             $duration = new DateInterval($item['duration']);
             $rate->setDuration($duration);

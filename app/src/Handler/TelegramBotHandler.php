@@ -2,72 +2,184 @@
 
 namespace App\Handler;
 
+use App\Entity\Method;
+use App\Entity\Rate;
+use App\Repository\MethodRepository;
+use App\Repository\PriceRepository;
+use App\Repository\RateRepository;
+use App\Service\SettingService;
 use App\Service\TelegramService;
 use App\Telegram\Commands\StartCommand;
-use Longman\TelegramBot\Entities\Update;
-use Longman\TelegramBot\Exception\TelegramException;
-use Longman\TelegramBot\Telegram;
+use Longman\TelegramBot\Entities\CallbackQuery;
+use Longman\TelegramBot\Entities\InlineKeyboard;
+use Longman\TelegramBot\Entities\InlineKeyboardButton;
 use Longman\TelegramBot\Request;
 
 class TelegramBotHandler
 {
-    private ?Telegram $telegram = null;
+    private const PREFIX_RATE = 'rate-';
+    private const PREFIX_METHOD = 'method-';
+    private ?Rate $selectRate = null;
 
-    public function __construct()
-    {
-        $this->telegram = new Telegram(getenv('BOT_TOKEN'), getenv('BOT_USERNAME'));
+    public function __construct(
+        private RateRepository $rateRepository,
+        private SettingService $settingService,
+        private MethodRepository $methodRepository,
+        private PriceRepository $priceRepository,
+    )
+    {}
+
+    public function handelStartMessage(): void {
+        $update = TelegramService::getUpdate();
+
+        if ($update->getCallbackQuery() instanceof CallbackQuery) {
+            return;
+        }
+
+        $message = $update->getMessage()->getText();
+
+        if ($message !== '/start') {
+            return;
+        }
+
+        $rates = $this->rateRepository->findAll();
+        $inlineKeyboardButton = [];
+
+        foreach ($rates as $rate) {
+            $inlineKeyboardButton[] = new InlineKeyboardButton(
+                [
+                    'text' => $rate->getName(),
+                    'callback_data' => sprintf('%s%s',self::PREFIX_RATE, $rate->getId()),
+                ]
+            );
+        }
+
+        $data = [
+            'chat_id' =>  $update->getMessage()->getChat()->getId(),
+            'text' => $this->settingService->getParameterValue('startMessage') ?? '',
+            'reply_markup' => new InlineKeyboard($inlineKeyboardButton),
+        ];
+
+        Request::sendMessage($data);
     }
 
-    public function setWebhook(): string|null
-    {
-        try {
-            $result = $this->telegram->setWebhook(getenv('HOOK_URL'));
-            if ($result->isOk()) {
-                return $result->getDescription();
+    public function handleRateButtons(): void {
+        $update = TelegramService::getUpdate();
+
+        if (!($update->getCallbackQuery() instanceof CallbackQuery)) {
+            return;
+        }
+
+        $rates = $this->rateRepository->findAll();
+        foreach ($rates as $rate) {
+            if ($this->getCallbackData() === sprintf('%s%s',self::PREFIX_RATE, $rate->getId())) {
+                $this->selectRate = $rate;
+                $this->sendMethodsInlineKeyboard();
             }
-
-            return null;
-        } catch (TelegramException $e) {
-            return $e->getMessage();
         }
     }
 
-    public function deleteWebhook(): string
-    {
-        try {
-            $result = $this->telegram->deleteWebhook();
-            return $result->getDescription();
-        } catch (TelegramException $e) {
-            return $e->getMessage();
-        }
-    }
+    private function sendMethodsInlineKeyboard(): void {
+        $methods = $this->methodRepository->findAll();
 
-    public function handleWebhook()
-    {
-        try {
-            $this->telegram->handle();
-            $telegramService = new TelegramService();
-            $telegramService->startCommand($this->getUpdate());
-            $telegramService->handleButton($this->getUpdate());
-            // Пример как переслать сообщения
-//            $telegramService->forwardMessage(
-//                6,
-//                getenv('ADMIN_GROUP_ID'),
-//                725014793,
-//            );
+        $inlineKeyboardButton = [];
 
-        } catch (TelegramException $e) {
-            $e->getMessage();
+        foreach ($methods as $method) {
+            $inlineKeyboardButton[] = new InlineKeyboardButton(
+                [
+                    'text' => $method->getName(),
+                    'callback_data' => sprintf('%s%s',self::PREFIX_METHOD, $method->getId()),
+                ]
+            );
         }
 
-        return [];
+        $data = [
+            'chat_id' => $this->getChatId(),
+            'text' => $this->settingService->getParameterValue('methodMessage') ?? '',
+            'reply_markup' => new InlineKeyboard($inlineKeyboardButton),
+        ];
+
+        Request::sendMessage($data);
     }
 
-    private function getUpdate(): Update
-    {
-        $input = Request::getInput();
-        $post = json_decode($input, true);
-        return new Update($post, getenv('BOT_USERNAME'));
+    private function getCallbackData(): string {
+        return TelegramService::getUpdate()->getCallbackQuery()->getData() ?? '';
     }
 
+    private function getChatId(): string {
+        return TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId() ?? '';
+    }
+
+    public function handlePaymentsMethods(): void {
+        $rate = $this->rateRepository->findOneBy(['id' => 1]);
+
+        if ($this->getCallbackData() === sprintf('%s%s', self::PREFIX_METHOD, Method::SBER_ID)) {
+            $method = $this->methodRepository->findOneBy(['id' => Method::SBER_ID]);
+            $price = $this->priceRepository->findOneBy(
+                [
+                    'rate' => $rate,
+                    'currency' => 'RUB',
+                ]
+            );
+
+            $prices = [
+                [
+                    'label' => 'Подписка',
+                    'amount' => $price->getPrice() * 100,
+                ]
+            ];
+
+            $postfields = [
+                'chat_id' => $this->getChatId(),
+                'provider_token' => $method->getToken(),
+                'title' => sprintf('Подписка на %s', $rate->getName()),
+                'description' => sprintf('Подписка на %s', $rate->getName()),
+                'payload' => [
+                    'unique_id' => $method->getId() . $rate->getId() . date('y-m-d-H-i-S'),
+                    'provider_token' => $method->getToken(),
+                ],
+                'currency' => 'RUB',
+                'prices' => json_encode($prices),
+            ];
+
+            Request::sendInvoice($postfields);
+
+            return;
+        }
+
+        if ($this->getCallbackData() === sprintf('%s%s', self::PREFIX_METHOD, Method::STRIPE_ID)) {
+            $method = $this->methodRepository->findOneBy(['id' => Method::STRIPE_ID]);
+            $price = $this->priceRepository->findOneBy(
+                [
+                    'rate' => $rate,
+                    'currency' => 'USD',
+                ]
+            );
+
+            $prices = [
+                [
+                    'label' => 'Подписка',
+                    'amount' => $price->getPrice() * 100,
+                ]
+            ];
+            var_dump($method->getToken());
+
+            $postfields = [
+                'chat_id' => $this->getChatId(),
+                'provider_token' => $method->getToken(),
+                'title' => sprintf('Подписка на %s', $rate->getName()),
+                'description' => sprintf('Подписка на %s', $rate->getName()),
+                'payload' => [
+                    'unique_id' => $method->getId() . $rate->getId() . date('y-m-d-H-i-S'),
+                    'provider_token' => $method->getToken(),
+                ],
+                'currency' => $price->getCurrency(),
+                'prices' => json_encode($prices),
+            ];
+
+            Request::sendInvoice($postfields);
+
+            return;
+        }
+    }
 }
