@@ -22,6 +22,9 @@ class Method
     #[ORM\Column(type: 'string', nullable: false)]
     private string $token;
 
+    #[ORM\Column(type: 'string', nullable: false)]
+    private string $currency;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -47,6 +50,18 @@ class Method
     public function setToken(string $token): self
     {
         $this->token = $token;
+
+        return $this;
+    }
+
+    public function getCurrency(): string
+    {
+        return $this->currency;
+    }
+
+    public function setCurrency(string $currency): self
+    {
+        $this->currency = $currency;
 
         return $this;
     }

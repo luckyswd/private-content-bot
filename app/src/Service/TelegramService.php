@@ -55,26 +55,32 @@ class TelegramService
         int $orderNumber,
     ): int|null {
         $allPosts = $this->getAllPosts();
+
         foreach ($allPosts as $key => $post) {
-            if (++$key == $orderNumber) {
-                return $post['message']['message_id'];
+            if (++$key != $orderNumber) {
+                continue;
             }
+
+            return $post['message']['message_id'];
         }
 
         return null;
     }
 
-    private function getAllPosts(): array {
+    public function getAllPosts(): array {
         $botToken = getenv('ADMIN_BOT_TOKEN');
         $client = new Client([
             'base_uri' => 'https://api.telegram.org/bot' . $botToken . '/',
         ]);
+
         $response = $client->get('getUpdates', [
             'query' => [
                 'chat_id' => getenv('ADMIN_GROUP_ID')
             ],
         ]);
+
         $data = json_decode($response->getBody(), true);
+
         if (!$data['ok']) {
             return [];
         }
@@ -83,21 +89,16 @@ class TelegramService
     }
 
     public function forwardMessage(
-        ?int $orderNumber,
-        int  $groupIdFrom,
-        int  $chatIdTo,
-    ): void
-    {
+        int $orderNumber,
+        int $groupIdFrom,
+        string $chatIdTo,
+    ): void {
         $postId = $this->getPostId($orderNumber);
-        if (!$postId) {
+
+        if (!$postId || !$groupIdFrom || !$chatIdTo) {
             return;
         }
-        if (!$groupIdFrom) {
-            return;
-        }
-        if (!$chatIdTo) {
-            return;
-        }
+
         Request::copyMessage([
             'chat_id' => $chatIdTo,
             'from_chat_id' => $groupIdFrom,

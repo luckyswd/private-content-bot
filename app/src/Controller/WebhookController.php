@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Handler\TelegramBotHandler;
 use App\Service\TelegramService;
 use Longman\TelegramBot\Exception\TelegramException;
+use Longman\TelegramBot\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
@@ -40,6 +41,8 @@ class WebhookController extends AbstractController
             $telegramBotHandler->handelStartMessage();
             $telegramBotHandler->handleRateButtons();
             $telegramBotHandler->handlePaymentsMethods();
+            $telegramBotHandler->handelPayments();
+            $telegramBotHandler->handelSuccessfulPayment();
 
             $result = 'ok';
         } catch (TelegramException|\Error $e) {
