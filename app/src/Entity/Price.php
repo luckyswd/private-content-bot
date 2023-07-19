@@ -9,6 +9,10 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class Price extends BaseEntity
 {
+    public const RUB_CURRENCY = 'RUB';
+    public const EUR_CURRENCY = 'EUR';
+    public const USD_CURRENCY = 'USD';
+
     #[ORM\Column(type: 'string', nullable: false)]
     private string $price;
 

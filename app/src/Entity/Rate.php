@@ -26,6 +26,16 @@ class Rate extends BaseEntity
         $this->prices = new ArrayCollection();
     }
 
+    public function addPrice(
+        Price $price,
+    ):void {
+        if ($this->prices->contains($price)) {
+            return;
+        }
+        $price->setRate($this);
+        $this->prices->add($price);
+    }
+
     public function getPrices(): Collection
     {
         return $this->prices;
@@ -53,5 +63,14 @@ class Rate extends BaseEntity
         $this->duration = $duration;
 
         return $this;
+    }
+
+    public function getButtonName():string {
+        $this->prices->reduce(function ($carry, Price $price) {
+
+        return sprintf('%s,', $carry, $price->getPrice(), $price->getCurrency());
+        }, '');
+
+        return sprintf('%s ()', $this->name,);
     }
 }

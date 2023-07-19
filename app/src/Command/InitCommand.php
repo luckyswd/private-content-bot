@@ -3,6 +3,8 @@
 namespace App\Command;
 
 use App\Entity\Course;
+use App\Entity\Method;
+use App\Entity\Price;
 use App\Entity\Rate;
 use App\Entity\Setting;
 use App\Entity\Subscription;
@@ -48,6 +50,7 @@ class InitCommand extends Command
         $this->initSubscription();
         $this->initCourse();
         $this->initSettings();
+        $this->addMethods();
 
         $io->info('success');
         return Command::SUCCESS;
@@ -60,10 +63,10 @@ class InitCommand extends Command
             return;
         }
 
-
         $ratesArray = [
-            ['name' => 'Месяц', 'price' => '100', 'duration' => 'P1M'],
-            ['name' => 'Год', 'price' => '1000', 'duration' => 'P1Y'],
+            ['name' => '1 Месяц', 'duration' => 'P1M'],
+            ['name' => 'Год', 'duration' => 'P1Y'],
+            ['name' => 'Навсегда', 'duration' => 'P20Y'],
         ];
 
         foreach ($ratesArray as $item) {
@@ -72,8 +75,9 @@ class InitCommand extends Command
 
             $duration = new DateInterval($item['duration']);
             $rate->setDuration($duration);
-
+            $this->addPrice($rate);
             $this->em->persist($rate);
+
         }
 
         $this->em->flush();
@@ -130,10 +134,46 @@ class InitCommand extends Command
 
     private function initSettings():void {
         try {
-            $firstMessage = new Setting('firstMessage', 'Добрый день, для покупки курса следуйте инструкциям бота!');
+            $firstMessage = new Setting('startMessage', 'Добрый день, для покупки курса следуйте инструкциям бота!');
             $this->em->persist($firstMessage);
             $this->em->flush();
         } catch (Exception) {}
 
+        try {
+            $methodMessage = new Setting('methodMessage', 'Выберите удобный метод оплаты: ');
+            $this->em->persist($methodMessage);
+            $this->em->flush();
+        } catch (Exception) {}
+
+    }
+
+    private function addPrice(Rate $rate):void {
+        $priceUsd = new Price();
+        $priceUsd->setPrice(1000);
+        $priceUsd->setCurrency(Price::USD_CURRENCY);
+
+        $priceRub = new Price();
+        $priceRub->setPrice(20000);
+        $priceRub->setCurrency(Price::RUB_CURRENCY);
+
+        $rate->addPrice($priceRub);
+        $rate->addPrice($priceUsd);
+    }
+
+    private function addMethods():void {
+        $method1 = new Method();
+        $method1->setName('Сбербанк');
+        $method1->setCurrency(Price::RUB_CURRENCY);
+        $method1->setToken('123');
+        $this->em->persist($method1);
+        $this->em->flush();
+
+
+        $method2 = new Method();
+        $method2->setName('Stripe');
+        $method2->setCurrency(Price::USD_CURRENCY);
+        $method2->setToken('1234555');
+        $this->em->persist($method2);
+        $this->em->flush();
     }
 }

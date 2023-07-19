@@ -9,9 +9,6 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class Method extends BaseEntity
 {
-    public const SBER_ID = 1;
-    public const STRIPE_ID = 2;
-
     #[ORM\Column(type: 'string', nullable: false)]
     private string $name;
 
