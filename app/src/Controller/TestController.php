@@ -2,9 +2,8 @@
 
 namespace App\Controller;
 
-use App\Entity\User;
+use App\Entity\Rate;
 use App\Service\TelegramService;
-use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
@@ -12,9 +11,10 @@ use Symfony\Component\Routing\Annotation\Route;
 class TestController extends AbstractController
 {
     #[Route('/test/{id}', name: 'app_test')]
-    public function index(User $user, TelegramService $telegramService): JsonResponse
+    public function index(Rate $rate, TelegramService $telegramService): JsonResponse
     {
 
+        dd($rate->getButtonName());
         dd($telegramService->getAllPosts());
 
 //        dump(sprintf('получаем у пользователя с id: [%s] активные подписки',  $user->getId() ));

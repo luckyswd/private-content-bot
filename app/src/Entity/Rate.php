@@ -66,11 +66,17 @@ class Rate extends BaseEntity
     }
 
     public function getButtonName():string {
-        $this->prices->reduce(function ($carry, Price $price) {
+        $priceString = $this->prices->reduce(function ($carry, Price $price) {
 
-        return sprintf('%s,', $carry, $price->getPrice(), $price->getCurrency());
+            $priceString = sprintf('(%s %s)', $price->getPrice(), $price->getCurrency());
+            if ($carry == '') {
+                $priceString = "$priceString,";
+            }
+
+
+            return sprintf('%s %s', $carry, $priceString);
         }, '');
 
-        return sprintf('%s ()', $this->name,);
+        return sprintf('%s%s', $this->name, $priceString);
     }
 }
