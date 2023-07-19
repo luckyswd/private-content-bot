@@ -6,15 +6,11 @@ use App\Repository\MethodRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: MethodRepository::class)]
-class Method
+#[ORM\HasLifecycleCallbacks]
+class Method extends BaseEntity
 {
     public const SBER_ID = 1;
     public const STRIPE_ID = 2;
-
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
 
     #[ORM\Column(type: 'string', nullable: false)]
     private string $name;
@@ -24,11 +20,6 @@ class Method
 
     #[ORM\Column(type: 'string', nullable: false)]
     private string $currency;
-
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
 
     public function getName(): string
     {

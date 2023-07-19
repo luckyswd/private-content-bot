@@ -15,6 +15,15 @@ class Setting extends BaseEntity
     #[ORM\Column(type: 'text', nullable: false)]
     private string $value;
 
+    public function __construct(
+        string $name,
+        string $value,
+    )
+    {
+        $this->name = $name;
+        $this->value = $value;
+    }
+
     public function getName(): string
     {
         return $this->name;

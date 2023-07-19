@@ -6,13 +6,9 @@ use App\Repository\PriceRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PriceRepository::class)]
-class Price
+#[ORM\HasLifecycleCallbacks]
+class Price extends BaseEntity
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
-
     #[ORM\Column(type: 'string', nullable: false)]
     private string $price;
 
@@ -22,11 +18,6 @@ class Price
     #[ORM\ManyToOne(targetEntity: Rate::class, cascade: ["persist"])]
     #[ORM\JoinColumn(name: 'rate', nullable: false)]
     private Rate $rate;
-
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
 
     public function getPrice(): string
     {
