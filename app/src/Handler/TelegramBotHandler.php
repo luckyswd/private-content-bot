@@ -11,6 +11,8 @@ use App\Entity\User;
 use App\Repository\MethodRepository;
 use App\Repository\PriceRepository;
 use App\Repository\RateRepository;
+use App\Repository\SubscriptionRepository;
+use App\Repository\UserRepository;
 use App\Service\SettingService;
 use App\Service\TelegramService;
 use App\Telegram\Commands\StartCommand;
@@ -18,6 +20,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Longman\TelegramBot\Entities\CallbackQuery;
 use Longman\TelegramBot\Entities\InlineKeyboard;
 use Longman\TelegramBot\Entities\InlineKeyboardButton;
+use Longman\TelegramBot\Entities\Payments\SuccessfulPayment;
 use Longman\TelegramBot\Request;
 
 class TelegramBotHandler
@@ -31,6 +34,8 @@ class TelegramBotHandler
         private PriceRepository  $priceRepository,
         private TelegramService  $telegramService,
         private EntityManagerInterface  $entityManager,
+        private UserRepository $userRepository,
+        private SubscriptionRepository $subscriptionRepository,
     )
     {
     }
@@ -115,8 +120,9 @@ class TelegramBotHandler
             'title' => sprintf('Подписка на %s', $rate?->getName()),
             'description' => sprintf('Подписка на %s', $rate?->getName()),
             'payload' => [
-                'unique_id' =>json_encode(['rate'=> $rate->getId(), 'date' => date('y-m-d-H-i-S')]),
+                'unique_id' => date('y-m-d-H-i-S'),
                 'provider_token' => $method->getToken(),
+                'rate' => $rate->getId(),
             ],
             'currency' => $currency,
             'prices' => json_encode($prices),
@@ -135,14 +141,17 @@ class TelegramBotHandler
         $preCheckoutQuery->answer(true);
     }
 
+    private function getSuccessfulPayment(): ?SuccessfulPayment {
+        return TelegramService::getUpdate()?->getMessage()?->getSuccessfulPayment() ?? null;
+    }
+
     public function handelSuccessfulPayment(): void
     {
-        $isSuccessfulPayment = TelegramService::getUpdate()?->getMessage()?->getSuccessfulPayment() ?? null;
-        if (!$isSuccessfulPayment) {
+        if (!$this->getSuccessfulPayment()) {
             return;
         }
-        var_dump($isSuccessfulPayment);
-//        $this->addUser();
+
+        $this->addUser();
         $this->telegramService->forwardMessage(1, getenv('ADMIN_GROUP_ID'), TelegramService::getUpdate()->getMessage()->getChat()->getId());
     }
 
@@ -186,16 +195,49 @@ class TelegramBotHandler
         }
     }
 
-    private function addUser(
-      Rate $rate,
-    ): void
-    {
+    private function addUser(): void {
+        $telegramId = TelegramService::getUpdate()->getMessage()->getChat()->getId();
+        $invoicePayload = json_decode($this->getSuccessfulPayment()?->getInvoicePayload());
+        $rate = $this->rateRepository->findOneBy(['id' => $invoicePayload->rate]);
+        $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
+
+        if ($user instanceof User) {
+            $this->updateUser($user, $rate);
+
+            return;
+        }
+
         $user = new User();
-        $user->setTelegramId(TelegramService::getUpdate()->getMessage()->getChat()->getId());
+        $user->setTelegramId($telegramId);
+        $this->entityManager->persist($user);
+
         $subscription = new Subscription();
         $subscription->setUser($user);
         $subscription->setRate($rate);
-        $this->entityManager->persist($user);
+        $subscription->setDate(new \DateTimeImmutable());
+        $this->entityManager->persist($subscription);
+
+        $this->entityManager->flush();
+    }
+
+    private function updateUser(
+        User $user,
+        Rate $rate,
+    ): void {
+        $subscription = $this->subscriptionRepository->findOneBy(['user' => $user, 'rate' => $rate]);
+
+        if ($subscription) {
+            $subscription->setDate(new \DateTimeImmutable());
+            $this->entityManager->flush();
+
+            return;
+        }
+
+        $subscription = new Subscription();
+        $subscription->setUser($user);
+        $subscription->setRate($rate);
+        $subscription->setDate(new \DateTimeImmutable());
+
         $this->entityManager->persist($subscription);
         $this->entityManager->flush();
     }
