@@ -136,9 +136,7 @@ class TelegramBotHandler
     public function handelSuccessfulPayment(): void
     {
         $isSuccessfulPayment = TelegramService::getUpdate()?->getMessage()?->getSuccessfulPayment() ?? null;
-        var_dump($isSuccessfulPayment);
         if ($isSuccessfulPayment) {
-            var_dump(222);
             $this->telegramService->forwardMessage(1, getenv('ADMIN_GROUP_ID'), TelegramService::getUpdate()->getMessage()->getChat()->getId());
         }
     }
