@@ -43,6 +43,7 @@ class WebhookController extends AbstractController
             $telegramBotHandler->handlePaymentsMethods();
             $telegramBotHandler->handelPayments();
             $telegramBotHandler->handelSuccessfulPayment();
+            $telegramBotHandler->handelMassageId();
 
             $result = 'ok';
         } catch (TelegramException|\Error $e) {

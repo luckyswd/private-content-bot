@@ -19,7 +19,7 @@ class Subscription extends BaseEntity
     private Rate $rate;
 
     #[ORM\Column(type: 'integer', nullable: false)]
-    private string $step;
+    private int $step = 0;
 
     #[ORM\Column(name: 'date', type: 'datetime_immutable', nullable: false)]
     private DateTimeImmutable $date;
@@ -70,15 +70,13 @@ class Subscription extends BaseEntity
         return $difference->days;
     }
 
-    public function getStep(): string
+    public function getStep(): int
     {
         return $this->step;
     }
 
-    public function setStep(string $step): self
+    public function setStep(int $step): void
     {
         $this->step = $step;
-
-        return $this;
     }
 }

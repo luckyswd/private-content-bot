@@ -3,6 +3,7 @@
 namespace App\Handler;
 
 use App\Entity\Method;
+use App\Entity\Post;
 use App\Entity\Rate;
 use App\Repository\MethodRepository;
 use App\Repository\PriceRepository;
@@ -10,6 +11,7 @@ use App\Repository\RateRepository;
 use App\Service\SettingService;
 use App\Service\TelegramService;
 use App\Telegram\Commands\StartCommand;
+use Doctrine\ORM\EntityManagerInterface;
 use Longman\TelegramBot\Entities\CallbackQuery;
 use Longman\TelegramBot\Entities\InlineKeyboard;
 use Longman\TelegramBot\Entities\InlineKeyboardButton;
@@ -20,15 +22,18 @@ class TelegramBotHandler
     private const PREFIX_RATE = 'rate-';
 
     public function __construct(
-        private RateRepository $rateRepository,
-        private SettingService $settingService,
+        private RateRepository   $rateRepository,
+        private SettingService   $settingService,
         private MethodRepository $methodRepository,
-        private PriceRepository $priceRepository,
-        private TelegramService $telegramService,
+        private PriceRepository  $priceRepository,
+        private TelegramService  $telegramService,
+        private EntityManagerInterface  $entityManager,
     )
-    {}
+    {
+    }
 
-    public function handelStartMessage(): void {
+    public function handelStartMessage(): void
+    {
         $update = TelegramService::getUpdate();
 
         if ($update->getCallbackQuery() instanceof CallbackQuery) {
@@ -40,7 +45,6 @@ class TelegramBotHandler
         if ($message !== '/start') {
             return;
         }
-
         $rates = $this->rateRepository->findAll();
         $inlineKeyboardButton = [];
 
@@ -48,13 +52,13 @@ class TelegramBotHandler
             $inlineKeyboardButton[] = new InlineKeyboardButton(
                 [
                     'text' => $rate->getButtonName(),
-                    'callback_data' => sprintf('%s%s',self::PREFIX_RATE, $rate->getId()),
+                    'callback_data' => sprintf('%s%s', self::PREFIX_RATE, $rate->getId()),
                 ]
             );
         }
 
         $data = [
-            'chat_id' =>  $update->getMessage()->getChat()->getId(),
+            'chat_id' => $update->getMessage()->getChat()->getId(),
             'text' => $this->settingService->getParameterValue('startMessage') ?? '',
             'reply_markup' => new InlineKeyboard($inlineKeyboardButton),
         ];
@@ -62,7 +66,8 @@ class TelegramBotHandler
         Request::sendMessage($data);
     }
 
-    public function handleRateButtons(): void {
+    public function handleRateButtons(): void
+    {
         $update = TelegramService::getUpdate();
 
         if (!($update->getCallbackQuery() instanceof CallbackQuery)) {
@@ -71,7 +76,7 @@ class TelegramBotHandler
 
         $rates = $this->rateRepository->findAll();
         foreach ($rates as $rate) {
-            if ($this->getCallbackData() === sprintf('%s%s',self::PREFIX_RATE, $rate->getId())) {
+            if ($this->getCallbackData() === sprintf('%s%s', self::PREFIX_RATE, $rate->getId())) {
                 $this->sendMethodsInlineKeyboard($rate);
             }
         }
@@ -79,7 +84,9 @@ class TelegramBotHandler
 
     private function sendMethodsInlineKeyboard(
         Rate $rate,
-    ): void {
+    ): void
+    {
+
         $methods = $this->methodRepository->findAll();
 
         $inlineKeyboardButton = [];
@@ -107,15 +114,18 @@ class TelegramBotHandler
         Request::sendMessage($data);
     }
 
-    private function getCallbackData(): string {
+    private function getCallbackData(): string
+    {
         return TelegramService::getUpdate()?->getCallbackQuery()?->getData() ?? '';
     }
 
-    private function getChatId(): string {
+    private function getChatId(): string
+    {
         return TelegramService::getUpdate()?->getCallbackQuery()?->getFrom()?->getId() ?? '';
     }
 
-    public function handlePaymentsMethods(): void {
+    public function handlePaymentsMethods(): void
+    {
         $callbackData = json_decode($this->getCallbackData());
         $rate = $this->rateRepository->findOneBy(['id' => $callbackData->rate ?? null]);
         $method = $this->methodRepository->findOneBy(['id' => $callbackData->method ?? null]);
@@ -154,7 +164,8 @@ class TelegramBotHandler
         Request::sendInvoice($postfields);
     }
 
-    public function handelPayments(): void {
+    public function handelPayments(): void
+    {
         $preCheckoutQuery = TelegramService::getUpdate()->getPreCheckoutQuery();
 
         if (!$preCheckoutQuery) {
@@ -164,11 +175,29 @@ class TelegramBotHandler
         $preCheckoutQuery->answer(true);
     }
 
-    public function handelSuccessfulPayment(): void {
+    public function handelSuccessfulPayment(): void
+    {
         $isSuccessfulPayment = TelegramService::getUpdate()?->getMessage()?->getSuccessfulPayment() ?? null;
 
         if ($isSuccessfulPayment) {
             $this->telegramService->forwardMessage(12, getenv('ADMIN_GROUP_ID'), TelegramService::getUpdate()->getMessage()->getChat()->getId());
+        }
+    }
+
+    public function handelMassageId(): void
+    {
+        $update = TelegramService::getUpdate();
+        if ($update->getCallbackQuery() instanceof CallbackQuery) {
+            return;
+        }
+
+        $message = $update->getMessage();
+        if ($message && $message->getChat()->getId() == getenv('ADMIN_GROUP_ID')) {
+            $postId = $message->getMessageId();
+            $post = new Post();
+            $post->setMessageId($postId);
+            $this->entityManager->persist($post);
+            $this->entityManager->flush();
         }
     }
 }
