@@ -6,6 +6,8 @@ use App\Entity\Method;
 use App\Entity\Price;
 use App\Entity\Post;
 use App\Entity\Rate;
+use App\Entity\Subscription;
+use App\Entity\User;
 use App\Repository\MethodRepository;
 use App\Repository\PriceRepository;
 use App\Repository\RateRepository;
@@ -113,7 +115,7 @@ class TelegramBotHandler
             'title' => sprintf('Подписка на %s', $rate?->getName()),
             'description' => sprintf('Подписка на %s', $rate?->getName()),
             'payload' => [
-                'unique_id' => $method->getId() . $rate->getId() . date('y-m-d-H-i-S'),
+                'unique_id' =>json_encode(['rate'=> $rate->getId(), 'date' => date('y-m-d-H-i-S')]),
                 'provider_token' => $method->getToken(),
             ],
             'currency' => $currency,
@@ -136,12 +138,16 @@ class TelegramBotHandler
     public function handelSuccessfulPayment(): void
     {
         $isSuccessfulPayment = TelegramService::getUpdate()?->getMessage()?->getSuccessfulPayment() ?? null;
-        if ($isSuccessfulPayment) {
-            $this->telegramService->forwardMessage(1, getenv('ADMIN_GROUP_ID'), TelegramService::getUpdate()->getMessage()->getChat()->getId());
+        if (!$isSuccessfulPayment) {
+            return;
         }
+        var_dump($isSuccessfulPayment);
+//        $this->addUser();
+        $this->telegramService->forwardMessage(1, getenv('ADMIN_GROUP_ID'), TelegramService::getUpdate()->getMessage()->getChat()->getId());
     }
 
-    public function getStartMessage() {
+    public function getStartMessage(): string
+    {
         $result = '';
         $startMessageText = $this->settingService->getParameterValue('startMessage') ?? '';
         $rates = $this->rateRepository->findAll();
@@ -178,5 +184,19 @@ class TelegramBotHandler
             $this->entityManager->persist($post);
             $this->entityManager->flush();
         }
+    }
+
+    private function addUser(
+      Rate $rate,
+    ): void
+    {
+        $user = new User();
+        $user->setTelegramId(TelegramService::getUpdate()->getMessage()->getChat()->getId());
+        $subscription = new Subscription();
+        $subscription->setUser($user);
+        $subscription->setRate($rate);
+        $this->entityManager->persist($user);
+        $this->entityManager->persist($subscription);
+        $this->entityManager->flush();
     }
 }
