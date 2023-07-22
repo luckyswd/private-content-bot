@@ -9,14 +9,13 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class Method extends BaseEntity
 {
+    const YKASSA_ID = 1;
+
     #[ORM\Column(type: 'string', nullable: false)]
     private string $name;
 
     #[ORM\Column(type: 'string', nullable: false)]
     private string $token;
-
-    #[ORM\Column(type: 'string', nullable: false)]
-    private string $currency;
 
     public function getName(): string
     {
@@ -38,18 +37,6 @@ class Method extends BaseEntity
     public function setToken(string $token): self
     {
         $this->token = $token;
-
-        return $this;
-    }
-
-    public function getCurrency(): string
-    {
-        return $this->currency;
-    }
-
-    public function setCurrency(string $currency): self
-    {
-        $this->currency = $currency;
 
         return $this;
     }

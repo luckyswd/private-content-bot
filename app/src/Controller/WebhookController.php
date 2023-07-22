@@ -39,9 +39,8 @@ class WebhookController extends AbstractController
         try {
             $telegramService->getTelegram()->handle();
             $telegramBotHandler->handelStartMessage();
-            $telegramBotHandler->handleRateButtons();
-            $telegramBotHandler->handlePaymentsMethods();
-            $telegramBotHandler->handelPayments();
+            $telegramBotHandler->handlePaymentCard();
+            $telegramBotHandler->PaymentProcessor();
             $telegramBotHandler->handelSuccessfulPayment();
             $telegramBotHandler->handelMassageId();
 
