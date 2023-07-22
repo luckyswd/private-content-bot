@@ -60,9 +60,16 @@ class TelegramService
 
     public function getPostBtId(
         int $orderNumber,
-    ): ?Post
-    {
-        return $this->postRepository->findOneBy(['id' => $orderNumber]);
+    ): ?Post {
+        $posts = $this->postRepository->findBy(['botName' => TelegramService::getUpdate()->getBotUsername()]);
+
+        foreach ($posts as $key => $post) {
+            if (($key + 1) === $orderNumber) {
+                return $post;
+            }
+        }
+
+        return null;
     }
 
     public function forwardMessage(
@@ -79,13 +86,17 @@ class TelegramService
             ['text' => 'Получить следующие видео', 'callback_data' => 'btn_next_video'],
         ];
 
+        $keyboard = [
+            [['text' => 'Получить следующие видео', 'callback_data' => 'get_next_video']],
+            [['text' => 'Получить все предыдущие видео', 'callback_data' => 'get_all_video']],
+        ];
+
         Request::copyMessage([
             'chat_id' => $chatIdTo,
             'from_chat_id' => $groupIdFrom,
             'message_id' => $post->getMessageId() ?? '',
             'protect_content' => true,
-            'reply_markup' => ['inline_keyboard' => [$inlineButton]],
-
+            'reply_markup' => ['inline_keyboard' => [$inlineButton], 'keyboard' => $keyboard, 'resize_keyboard' => true, 'one_time_keyboard' => false],
         ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Rate;
+use App\Repository\SubscriptionRepository;
 use App\Service\TelegramService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -11,8 +12,14 @@ use Symfony\Component\Routing\Annotation\Route;
 class TestController extends AbstractController
 {
     #[Route('/test/{id}', name: 'app_test')]
-    public function index(Rate $rate, TelegramService $telegramService): JsonResponse
+    public function index(Rate $rate, SubscriptionRepository $subscriptionRepository): JsonResponse
     {
+        $test = $subscriptionRepository->findAll();
+        foreach ($test as $t) {
+            dump($t->getAllowedCountPost());
+        }
+
+        dd(1);
 
         dd($rate->getButtonName());
         dd($telegramService->getAllPosts());

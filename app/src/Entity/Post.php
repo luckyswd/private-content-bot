@@ -16,6 +16,9 @@ class Post
     #[ORM\Column(type: 'integer', nullable: false)]
     private int $messageId = 0;
 
+    #[ORM\Column(type: 'string', nullable: true)]
+    private ?string $botName = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -31,4 +34,13 @@ class Post
         $this->messageId = $messageId;
     }
 
+    public function getBotName(): ?string
+    {
+        return $this->botName;
+    }
+
+    public function setBotName(?string $botName): void
+    {
+        $this->botName = $botName;
+    }
 }
