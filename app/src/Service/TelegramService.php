@@ -99,11 +99,21 @@ class TelegramService
             return;
         }
 
+        $inlineButton = [
+            ['text' => 'Получить следующие видео', 'callback_data' => 'btn_next_video'],
+        ];
+
         Request::copyMessage([
             'chat_id' => $chatIdTo,
             'from_chat_id' => $groupIdFrom,
             'message_id' => $postId,
             'protect_content' => true,
+        ]);
+
+        Request::sendMessage([
+            'chat_id' => $groupIdFrom,
+            'text' => 'Для получения следующего видео',
+            'reply_markup' => ['inline_keyboard' => [$inlineButton]],
         ]);
     }
 }
