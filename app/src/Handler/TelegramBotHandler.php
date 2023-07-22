@@ -47,7 +47,7 @@ class TelegramBotHandler
         foreach ($rates as $rate) {
             $inlineKeyboardButton[] = new InlineKeyboardButton(
                 [
-                    'text' => $rate->getName(),
+                    'text' => $rate->getButtonName(),
                     'callback_data' => sprintf('%s%s',self::PREFIX_RATE, $rate->getId()),
                 ]
             );
