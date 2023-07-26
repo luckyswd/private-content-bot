@@ -58,7 +58,7 @@ class TelegramService
         return new Update($post, getenv('BOT_USERNAME'));
     }
 
-    public function getPostBtId(
+    public function getPostById(
         int $orderNumber,
     ): ?Post {
         $posts = $this->postRepository->findBy(['botName' => TelegramService::getUpdate()->getBotUsername()]);
@@ -77,7 +77,7 @@ class TelegramService
         int $groupIdFrom,
         string $chatIdTo,
     ): void {
-        $post = $this->getPostBtId($orderNumber);
+        $post = $this->getPostById($orderNumber);
         if (!$post || !$groupIdFrom || !$chatIdTo) {
             return;
         }

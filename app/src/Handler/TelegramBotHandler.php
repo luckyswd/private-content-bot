@@ -8,15 +8,14 @@ use App\Entity\Post;
 use App\Entity\Rate;
 use App\Entity\Subscription;
 use App\Entity\User;
+use App\Exception\SubscriptionExistException;
 use App\Repository\MethodRepository;
 use App\Repository\PostRepository;
 use App\Repository\PriceRepository;
 use App\Repository\RateRepository;
-use App\Repository\SubscriptionRepository;
 use App\Repository\UserRepository;
 use App\Service\SettingService;
 use App\Service\TelegramService;
-use App\Telegram\Commands\StartCommand;
 use Doctrine\ORM\EntityManagerInterface;
 use Longman\TelegramBot\Entities\CallbackQuery;
 use Longman\TelegramBot\Entities\InlineKeyboard;
@@ -26,8 +25,6 @@ use Longman\TelegramBot\Request;
 
 class TelegramBotHandler
 {
-    private const PREFIX_RATE = 'rate-';
-
     public function __construct(
         private RateRepository   $rateRepository,
         private SettingService   $settingService,
@@ -36,7 +33,6 @@ class TelegramBotHandler
         private TelegramService  $telegramService,
         private EntityManagerInterface  $entityManager,
         private UserRepository $userRepository,
-        private SubscriptionRepository $subscriptionRepository,
         private PostRepository $postRepository,
     )
     {
@@ -98,16 +94,13 @@ class TelegramBotHandler
 
         $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
 
-        /** @var Subscription $subscription */
-        foreach ($user->getSubscriptions() as $subscription) {
-            if ($subscription->getBotName() === $botName && $subscription->getAllowedCountPost()) {
-                return Request::sendMessage(
-                    [
-                        'chat_id' => $telegramId,
-                        'text' => 'Опалате ещё не истекла',
-                    ]
-                );
-            }
+        if ($user->hasActiveSubscription()) {
+            return Request::sendMessage(
+                [
+                    'chat_id' => $telegramId,
+                    'text' => 'Опалате ещё не истекла',
+                ]
+            );
         }
     }
 
@@ -219,27 +212,21 @@ class TelegramBotHandler
         }
     }
 
+    /** @throws SubscriptionExistException */
     private function addUser(): void {
         $telegramId = TelegramService::getUpdate()->getMessage()->getChat()->getId();
         $invoicePayload = json_decode($this->getSuccessfulPayment()?->getInvoicePayload());
         $rate = $this->rateRepository->findOneBy(['id' => $invoicePayload->rate]);
         $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
 
-        if ($user instanceof User) {
-            $this->updateUser($user, $rate);
-
-            return;
+        if ($user instanceof User && $user->hasActiveSubscription()) {
+            throw new SubscriptionExistException();
         }
 
         $user = new User();
         $user->setTelegramId($telegramId);
+        $user->setSubscription($rate);
         $this->entityManager->persist($user);
-
-        $subscription = new Subscription();
-        $subscription->setUser($user);
-        $subscription->setRate($rate);
-        $subscription->setDate(new \DateTimeImmutable());
-        $this->entityManager->persist($subscription);
 
         $this->entityManager->flush();
     }
@@ -248,21 +235,7 @@ class TelegramBotHandler
         User $user,
         Rate $rate,
     ): void {
-        $subscription = $this->subscriptionRepository->findOneBy(['user' => $user, 'rate' => $rate]);
-
-        if ($subscription) {
-            $subscription->setDate(new \DateTimeImmutable());
-            $this->entityManager->flush();
-
-            return;
-        }
-
-        $subscription = new Subscription();
-        $subscription->setUser($user);
-        $subscription->setRate($rate);
-        $subscription->setDate(new \DateTimeImmutable());
-
-        $this->entityManager->persist($subscription);
+        $user->setSubscription($rate);
         $this->entityManager->flush();
     }
 
