@@ -16,7 +16,7 @@ class User extends BaseEntity
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Subscription::class, cascade: ['persist'], fetch: "EAGER")]
 
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: Subscription::class, cascade: ['persist', 'remove'])]
-    private ?Subscription $subscription;
+    private Subscription $subscription;
 
     public function getSubscription():Subscription
     {

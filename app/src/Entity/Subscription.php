@@ -73,6 +73,17 @@ class Subscription extends BaseEntity
         return $difference->days;
     }
 
+    public function getLeftDateString():string {
+        $subscriptionDate = $this->getDate();
+
+        $rate = $this->getRate();
+        $subscriptionInterval = $rate->getDuration();
+        $endDate = $subscriptionDate->add($subscriptionInterval);
+
+        return $endDate->format('d.m.Y H:i');
+
+    }
+
     public function getStep(): int
     {
         return $this->step;

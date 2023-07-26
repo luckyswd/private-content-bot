@@ -105,6 +105,21 @@ class TelegramBotHandler
     }
 
     public function handlePaymentCard(): void {
+        $update = TelegramService::getUpdate();
+        $telegramId = $update->getMessage()->getChat()->getId();
+        $user = $this->userRepository->findOneBy(['id' => $telegramId]);
+        if ($user && $user->hasActiveSubscription()) {
+            $subscription = $user->getSubscription();
+            $data = [
+                'chat_id' =>  $telegramId,
+                'text' => sprintf('У вас есть активная подписка до %s', $subscription->getLeftDateString()),
+            ];
+
+            Request::sendMessage($data);
+
+            return;
+        }
+
         $callbackData = json_decode($this->getCallbackData());
         $rate = $this->rateRepository->findOneBy(['id' => $callbackData->rate ?? null]);
         $method = $this->methodRepository->findOneBy(['id' => Method::YKASSA_ID]);
@@ -212,16 +227,10 @@ class TelegramBotHandler
         }
     }
 
-    /** @throws SubscriptionExistException */
     private function addUser(): void {
         $telegramId = TelegramService::getUpdate()->getMessage()->getChat()->getId();
         $invoicePayload = json_decode($this->getSuccessfulPayment()?->getInvoicePayload());
         $rate = $this->rateRepository->findOneBy(['id' => $invoicePayload->rate]);
-        $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
-
-        if ($user instanceof User && $user->hasActiveSubscription()) {
-            throw new SubscriptionExistException();
-        }
 
         $user = new User();
         $user->setTelegramId($telegramId);
