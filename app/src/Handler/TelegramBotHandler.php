@@ -105,9 +105,9 @@ class TelegramBotHandler
     }
 
     public function handlePaymentCard(): void {
-        $update = TelegramService::getUpdate();
-        $telegramId = $update->getMessage()->getChat()->getId();
-        $user = $this->userRepository->findOneBy(['id' => $telegramId]);
+        $telegramId = TelegramService::getUpdate()?->getCallbackQuery()?->getRawData()['from']['id'] ?? null;
+        $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
+
         if ($user && $user->hasActiveSubscription()) {
             $subscription = $user->getSubscription();
             $data = [
@@ -229,8 +229,18 @@ class TelegramBotHandler
 
     private function addUser(): void {
         $telegramId = TelegramService::getUpdate()->getMessage()->getChat()->getId();
+        $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
         $invoicePayload = json_decode($this->getSuccessfulPayment()?->getInvoicePayload());
         $rate = $this->rateRepository->findOneBy(['id' => $invoicePayload->rate]);
+
+        if ($user) {
+            if ($user->hasActiveSubscription()) {
+                return;
+            }
+            $this->updateSubscription($user, $rate);
+
+            return;
+        }
 
         $user = new User();
         $user->setTelegramId($telegramId);
@@ -240,7 +250,7 @@ class TelegramBotHandler
         $this->entityManager->flush();
     }
 
-    private function updateUser(
+    private function updateSubscription(
         User $user,
         Rate $rate,
     ): void {
