@@ -18,7 +18,7 @@ class User extends BaseEntity
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: Subscription::class, cascade: ['persist', 'remove'])]
     private ?Subscription $subscription = null;
 
-    public function getSubscription():Subscription
+    public function getSubscription(): ?Subscription
     {
         return $this->subscription;
     }
@@ -27,6 +27,7 @@ class User extends BaseEntity
         $subscription = new Subscription();
         $subscription->setRate($rate);
         $subscription->setUser($this);
+        $subscription->setStep(1);
         $subscription->setDate(new DateTimeImmutable());
 
         $this->subscription = $subscription;
@@ -47,10 +48,11 @@ class User extends BaseEntity
     }
 
     //TODO - проверяет есть ли активная подписка у пользователя: возвращает true|false
-    public function hasActiveSubscription():bool {
+    public function hasActiveSubscription(): bool {
         $subscription = $this->subscription;
+
         if (!$subscription) {
-            return  false;
+            return false;
         }
 
         $currentDate = new DateTimeImmutable();

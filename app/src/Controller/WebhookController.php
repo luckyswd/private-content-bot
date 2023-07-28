@@ -49,6 +49,7 @@ class WebhookController extends AbstractController
 
             //Добавление постов в базу
             $telegramBotHandler->handelMassageId();
+            $telegramBotHandler->handelMenuButtons();
 
             $result = 'ok';
         } catch (TelegramException|\Error $e) {

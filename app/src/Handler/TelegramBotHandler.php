@@ -3,12 +3,9 @@
 namespace App\Handler;
 
 use App\Entity\Method;
-use App\Entity\Price;
 use App\Entity\Post;
 use App\Entity\Rate;
-use App\Entity\Subscription;
 use App\Entity\User;
-use App\Exception\SubscriptionExistException;
 use App\Repository\MethodRepository;
 use App\Repository\PostRepository;
 use App\Repository\PriceRepository;
@@ -18,8 +15,6 @@ use App\Service\SettingService;
 use App\Service\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Longman\TelegramBot\Entities\CallbackQuery;
-use Longman\TelegramBot\Entities\InlineKeyboard;
-use Longman\TelegramBot\Entities\InlineKeyboardButton;
 use Longman\TelegramBot\Entities\Payments\SuccessfulPayment;
 use Longman\TelegramBot\Request;
 
@@ -27,13 +22,13 @@ class TelegramBotHandler
 {
     public function __construct(
         private RateRepository   $rateRepository,
-        private SettingService   $settingService,
         private MethodRepository $methodRepository,
         private PriceRepository  $priceRepository,
         private TelegramService  $telegramService,
         private EntityManagerInterface  $entityManager,
         private UserRepository $userRepository,
         private PostRepository $postRepository,
+        private TelegramValidationHandler $telegramValidationHandler,
     )
     {
     }
@@ -51,31 +46,12 @@ class TelegramBotHandler
         if ($message !== '/start') {
             return;
         }
-        $rates = $this->rateRepository->findAll();
-        $inlineKeyboardButton = [];
 
-        foreach ($rates as $rate) {
-            $callbackData = [
-                'rate' => $rate->getId(),
-                'currency' => Price::RUB_CURRENCY,
-            ];
-
-            $inlineKeyboardButton[] = new InlineKeyboardButton(
-                [
-                    'text' => $rate?->getName(),
-                    'callback_data' => json_encode($callbackData),
-                ]
-            );
+        if ($this->telegramValidationHandler->sendMessageActiveSubscription($update->getMessage()?->getChat()?->getId())) {
+            return;
         }
 
-        $data = [
-            'chat_id' =>  $update->getMessage()->getChat()->getId(),
-            'text' => $this->getStartMessage(),
-            'reply_markup' => new InlineKeyboard($inlineKeyboardButton),
-            'parse_mode' => 'Markdown',
-        ];
-
-        Request::sendMessage($data);
+        $this->telegramService->sendPaymentsOptions();
     }
 
     private function getCallbackData(): string
@@ -106,17 +82,12 @@ class TelegramBotHandler
 
     public function handlePaymentCard(): void {
         $telegramId = TelegramService::getUpdate()?->getCallbackQuery()?->getRawData()['from']['id'] ?? null;
-        $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
 
-        if ($user && $user->hasActiveSubscription()) {
-            $subscription = $user->getSubscription();
-            $data = [
-                'chat_id' =>  $telegramId,
-                'text' => sprintf('У вас есть активная подписка до %s', $subscription->getLeftDateString()),
-            ];
+        if ($this->telegramValidationHandler->isMenuButtonsClick()) {
+            return;
+        }
 
-            Request::sendMessage($data);
-
+        if ($this->telegramValidationHandler->sendMessageActiveSubscription($telegramId)) {
             return;
         }
 
@@ -124,8 +95,6 @@ class TelegramBotHandler
         $rate = $this->rateRepository->findOneBy(['id' => $callbackData->rate ?? null]);
         $method = $this->methodRepository->findOneBy(['id' => Method::YKASSA_ID]);
         $currency = $callbackData->currency ?? null;
-
-
 
         if (!$rate instanceof Rate || !$method instanceof Method) {
             return;
@@ -169,6 +138,18 @@ class TelegramBotHandler
             return;
         }
 
+        $telegramId = $preCheckoutQuery->getFrom()->getId() ?? null;
+
+        if ($this->telegramValidationHandler->sendMessageActiveSubscription($telegramId)) {
+            $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
+
+            $preCheckoutQuery->answer(false, [
+                'error_message' => $this->telegramValidationHandler->getSubscriptionErrorMessage($user),
+            ]);
+
+            return;
+        }
+
         $preCheckoutQuery->answer(true);
     }
 
@@ -184,29 +165,6 @@ class TelegramBotHandler
 
         $this->addUser();
         $this->telegramService->forwardMessage(1, getenv('ADMIN_GROUP_ID'), TelegramService::getUpdate()->getMessage()->getChat()->getId());
-    }
-
-    public function getStartMessage(): string
-    {
-        $result = '';
-        $startMessageText = $this->settingService->getParameterValue('startMessage') ?? '';
-        $rates = $this->rateRepository->findAll();
-        $seperator = 'или';
-
-        foreach ($rates as $rate) {
-            $prices = $rate?->getPrices();
-            $result .= $rate?->getName() . ' -';
-            $lastKeyPrices = array_key_last($prices->toArray());
-
-            /** @var Price $price */
-            foreach ($prices as $key => $price) {
-                $result .= sprintf(' %s %s %s', $price?->getPrice(), $price->getCurrency(), $key !== $lastKeyPrices ? $seperator : '');
-            }
-
-            $result .= " \n";
-        }
-
-        return $result;
     }
 
     public function handelMassageId(): void
@@ -267,34 +225,68 @@ class TelegramBotHandler
         }
 
         $data = $update->getCallbackQuery()->getData();
+
         match ($data) {
             'get_all_video' => $this->handleGetAllVideo(),
-            'get_next_video' => 'Вы выбрали Опцию 2',
+            'get_next_video' => $this->handleGetNextVideo(),
             default => 'Неизвестная опция.',
         };
     }
 
     private function handleGetAllVideo(): void
     {
-        $posts = $this->postRepository->findBy(['botName' => TelegramService::getUpdate()->getBotUsername()]);
+        $telegramId = TelegramService::getUpdate()?->getCallbackQuery()?->getRawData()['from']['id'] ?? null;
+        $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
+
+        if (!$user || !$user->hasActiveSubscription()) {
+            $this->telegramService->sendPaymentsOptions();
+
+            return;
+        }
+
+        $subscription = $user->getSubscription();
+        $step = $subscription->getStep();
+        $allowedCountPost = $subscription->getAllowedCountPost();
+
+        $posts = $this->postRepository->getAllPostsByBotName(
+            TelegramService::getUpdate()->getBotUsername(),
+            min($step, $allowedCountPost),
+        );
 
         foreach ($posts as $key => $post) {
-            $this->telegramService->forwardMessage($key + 1, getenv('ADMIN_GROUP_ID'), TelegramService::getUpdate()->getMessage()->getChat()->getId());
+            $this->telegramService->forwardMessage(
+                $key + 1,
+                getenv('ADMIN_GROUP_ID'),
+                TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId(),
+                $key === array_key_last($posts),
+            );
         }
     }
 
-    private function handleGetNextVideo()
-    {
-        $telegramId = TelegramService::getUpdate()?->getMessage()?->getChat()?->getId();
+    private function handleGetNextVideo(): void {
+        $telegramId = TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId();
 
         if (!$telegramId) {
             return;
         }
 
         $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
+        $subscription = $user->getSubscription();
+        $isAllowedCountPost = $subscription->getAllowedCountPost();
+        $step = $subscription->getStep();
 
+        if ($isAllowedCountPost <= $step) {
+            return;
+        }
 
+        $subscription->setStep($step + 1);
 
+        $this->telegramService->forwardMessage(
+            $step + 1,
+            getenv('ADMIN_GROUP_ID'),
+            TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId(),
+        );
 
+        $this->entityManager->flush();
     }
 }

@@ -70,7 +70,7 @@ class Subscription extends BaseEntity
             (new DateTime()
         );
 
-        return $difference->days;
+        return ($difference->days + 1);
     }
 
     public function getLeftDateString():string {

@@ -39,6 +39,19 @@ class PostRepository extends ServiceEntityRepository
         }
     }
 
+    public function getAllPostsByBotName(
+        string $botName,
+        int $countMaxResult,
+    ) {
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.botName = :botName')
+            ->setParameter('botName', $botName)
+            ->orderBy('p.id', 'ASC')
+            ->setMaxResults($countMaxResult)
+            ->getQuery()
+            ->getResult();
+    }
+
 //    /**
 //     * @return Post[] Returns an array of Post objects
 //     */
