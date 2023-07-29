@@ -15,7 +15,7 @@ class TestController extends AbstractController
     {
 
         $sub = $user->getSubscription();
-        dd($sub->getAllowedCountPost());
+        dd($sub->getNextDate());
 
 
 

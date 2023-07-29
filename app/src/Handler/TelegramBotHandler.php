@@ -11,7 +11,7 @@ use App\Repository\PostRepository;
 use App\Repository\PriceRepository;
 use App\Repository\RateRepository;
 use App\Repository\UserRepository;
-use App\Service\SettingService;
+use App\Service\TelegramMessageService;
 use App\Service\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Longman\TelegramBot\Entities\CallbackQuery;
@@ -29,6 +29,7 @@ class TelegramBotHandler
         private UserRepository $userRepository,
         private PostRepository $postRepository,
         private TelegramValidationHandler $telegramValidationHandler,
+        private TelegramMessageService $telegramMessageService,
     )
     {
     }
@@ -51,7 +52,7 @@ class TelegramBotHandler
             return;
         }
 
-        $this->telegramService->sendPaymentsOptions();
+        $this->telegramMessageService->sendPaymentsMessageAndOptions();
     }
 
     private function getCallbackData(): string
@@ -62,22 +63,6 @@ class TelegramBotHandler
     private function getChatId(): string
     {
         return TelegramService::getUpdate()?->getCallbackQuery()?->getFrom()?->getId() ?? '';
-    }
-
-    private function isSubscription() {
-        $telegramId = TelegramService::getUpdate()?->getMessage()?->getChat()?->getId();
-        $botName = TelegramService::getUpdate()->getBotUsername();
-
-        $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
-
-        if ($user->hasActiveSubscription()) {
-            return Request::sendMessage(
-                [
-                    'chat_id' => $telegramId,
-                    'text' => 'Опалате ещё не истекла',
-                ]
-            );
-        }
     }
 
     public function handlePaymentCard(): void {
@@ -239,7 +224,7 @@ class TelegramBotHandler
         $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
 
         if (!$user || !$user->hasActiveSubscription()) {
-            $this->telegramService->sendPaymentsOptions();
+            $this->telegramMessageService->sendPaymentsMessageAndOptions();
 
             return;
         }
@@ -264,7 +249,14 @@ class TelegramBotHandler
     }
 
     private function handleGetNextVideo(): void {
-        $telegramId = TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId();
+        $callBackQuery = TelegramService::getUpdate()->getCallbackQuery();
+
+        if (!$callBackQuery) {
+            return;
+        }
+
+        $telegramId = $callBackQuery->getFrom()->getId();
+        $botUsername = $callBackQuery->getBotUsername();
 
         if (!$telegramId) {
             return;
@@ -272,10 +264,18 @@ class TelegramBotHandler
 
         $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
         $subscription = $user->getSubscription();
-        $isAllowedCountPost = $subscription->getAllowedCountPost();
+        $allowedCountPost = $subscription->getAllowedCountPost();
         $step = $subscription->getStep();
 
-        if ($isAllowedCountPost <= $step) {
+        if ($step >= $this->telegramService->getCountAllPostByBotName($botUsername)) {
+            $this->telegramMessageService->sendEndMessage();
+
+            return;
+        }
+
+        if ($allowedCountPost <= $step) {
+            $this->telegramMessageService->sendDeniedReceiptMessage();
+
             return;
         }
 
