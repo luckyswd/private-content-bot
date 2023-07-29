@@ -3,8 +3,8 @@
 namespace App\Service;
 
 use App\Entity\Post;
-use App\Handler\TelegramValidationHandler;
 use App\Repository\PostRepository;
+use Longman\TelegramBot\Entities\CallbackQuery;
 use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Request;
@@ -87,7 +87,7 @@ class TelegramService
             'from_chat_id' => $groupIdFrom,
             'message_id' => $post->getMessageId() ?? '',
             'protect_content' => true,
-            'reply_markup' => $isLast ? json_encode(TelegramValidationHandler::getMenuButtons()) : '',
+            'reply_markup' => $isLast ? json_encode(TelegramMessageService::getMenuButtons()) : '',
         ]);
     }
 
@@ -97,5 +97,21 @@ class TelegramService
         $posts = $this->postRepository->findBy(['botName' => $botName]);
 
         return count($posts);
+    }
+
+    public function isMenuButtonsClick(): bool {
+        $update = TelegramService::getUpdate();
+
+        if (!$update->getCallbackQuery() instanceof CallbackQuery) {
+            return false;
+        }
+
+        $data = $update->getCallbackQuery()->getData();
+
+        if (in_array($data, ['get_next_video', 'get_all_video'])) {
+            return true;
+        }
+
+        return false;
     }
 }

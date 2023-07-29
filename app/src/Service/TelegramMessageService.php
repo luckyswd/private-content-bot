@@ -6,12 +6,12 @@ use App\Entity\Price;
 use App\Entity\User;
 use App\Repository\RateRepository;
 use App\Repository\UserRepository;
-use Longman\TelegramBot\Entities\InlineKeyboard;
-use Longman\TelegramBot\Entities\InlineKeyboardButton;
 use Longman\TelegramBot\Request;
 
 class TelegramMessageService
 {
+    private bool $isSend = false;
+
     public function __construct(
         private SettingService $settingService,
         private RateRepository $rateRepository,
@@ -46,20 +46,19 @@ class TelegramMessageService
                 'currency' => Price::RUB_CURRENCY,
             ];
 
-            $inlineKeyboardButton[] = new InlineKeyboardButton(
+            $inlineKeyboardButton['inline_keyboard'][] = [
                 [
-                    'text' => $rate?->getName(),
+                    'text' => $rate->getName(),
                     'callback_data' => json_encode($callbackData),
-                ]
-            );
+                ],
+            ];
         }
 
         Request::sendMessage(
             [
                 'chat_id' =>  TelegramService::getUpdate()->getMessage()->getChat()->getId(),
                 'text' => $this->getStartMessage(),
-                'reply_markup' => new InlineKeyboard($inlineKeyboardButton),
-                'parse_mode' => 'Markdown',
+                'reply_markup' => json_encode($inlineKeyboardButton),
             ]
         );
     }
@@ -84,5 +83,54 @@ class TelegramMessageService
         }
 
         return $result;
+    }
+
+    public static function getMenuButtons(): array {
+        return [
+            "inline_keyboard" => [
+                [
+                    [
+                        'text' => 'Получить следующие видео',
+                        'callback_data' => 'get_next_video'
+                    ],
+                ],
+                [
+                    [
+                        'text' => 'Получить все предыдущие видео',
+                        'callback_data' => 'get_all_video'
+                    ]
+                ]
+            ]
+        ];
+    }
+
+    public function getSubscriptionErrorMessage(
+        User $user,
+    ): string {
+        return sprintf('У вас есть активная подписка до %s',  $user->getSubscription()?->getLeftDateString());
+    }
+
+    public function sendMessageActiveSubscription(
+        ?string $telegramId,
+    ): bool {
+        if ($this->isSend) {
+            return true;
+        }
+
+        $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
+
+        if (!$user || !$user->hasActiveSubscription()) {
+            return false;
+        }
+
+        Request::sendMessage([
+            'chat_id' =>  $telegramId,
+            'text' => $this->getSubscriptionErrorMessage($user),
+            'reply_markup' => json_encode(TelegramMessageService::getMenuButtons()),
+        ]);
+
+        $this->isSend = true;
+
+        return true;
     }
 }

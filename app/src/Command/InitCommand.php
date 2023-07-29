@@ -58,9 +58,21 @@ class InitCommand extends Command
         }
 
         $ratesArray = [
-            ['name' => '1 Месяц', 'duration' => 'P1M'],
-            ['name' => 'Год', 'duration' => 'P1Y'],
-            ['name' => 'Навсегда', 'duration' => 'P20Y'],
+            [
+                'name' => 'Подписка на 1 Месяц',
+                'duration' => 'P1M',
+                'price' => '1000',
+            ],
+            [
+                'name' => 'Подписка на 1 Год',
+                'duration' => 'P1Y',
+                'price' => '11000',
+            ],
+            [
+                'name' => 'Пожизненная подписка',
+                'duration' => 'P20Y',
+                'price' => '25000',
+            ],
         ];
 
         foreach ($ratesArray as $item) {
@@ -69,9 +81,8 @@ class InitCommand extends Command
 
             $duration = new DateInterval($item['duration']);
             $rate->setDuration($duration);
-            $this->addPrice($rate);
+            $this->addPrice($rate, $item['price']);
             $this->em->persist($rate);
-
         }
 
         $this->em->flush();
@@ -123,19 +134,22 @@ class InitCommand extends Command
             $this->em->flush();
         } catch (Exception) {}
 
+        try {
+            $methodMessage = new Setting('endMessage', 'Больше нету новых видео');
+            $this->em->persist($methodMessage);
+            $this->em->flush();
+        } catch (Exception) {}
     }
 
-    private function addPrice(Rate $rate):void {
-        $priceUsd = new Price();
-        $priceUsd->setPrice(1000);
-        $priceUsd->setCurrency(Price::USD_CURRENCY);
-
+    private function addPrice(
+        Rate $rate,
+        string $price,
+    ): void {
         $priceRub = new Price();
-        $priceRub->setPrice(20000);
+        $priceRub->setPrice($price);
         $priceRub->setCurrency(Price::RUB_CURRENCY);
 
         $rate->addPrice($priceRub);
-        $rate->addPrice($priceUsd);
     }
 
     private function addMethods():void {

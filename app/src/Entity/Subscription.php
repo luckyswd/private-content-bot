@@ -22,9 +22,6 @@ class Subscription extends BaseEntity
     #[ORM\Column(type: 'integer', nullable: false)]
     private int $step = 0;
 
-    #[ORM\Column(type: 'string', nullable: true)]
-    private ?string $botName = null;
-
     #[ORM\Column(name: 'date', type: 'datetime_immutable', nullable: false)]
     private DateTimeImmutable $date;
 
@@ -74,16 +71,6 @@ class Subscription extends BaseEntity
     public function setStep(int $step): void
     {
         $this->step = $step;
-    }
-
-    public function getBotName(): ?string
-    {
-        return $this->botName;
-    }
-
-    public function setBotName(?string $botName): void
-    {
-        $this->botName = $botName;
     }
 
     public function getAllowedCountPost():int {

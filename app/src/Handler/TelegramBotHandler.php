@@ -28,7 +28,6 @@ class TelegramBotHandler
         private EntityManagerInterface  $entityManager,
         private UserRepository $userRepository,
         private PostRepository $postRepository,
-        private TelegramValidationHandler $telegramValidationHandler,
         private TelegramMessageService $telegramMessageService,
     )
     {
@@ -48,7 +47,7 @@ class TelegramBotHandler
             return;
         }
 
-        if ($this->telegramValidationHandler->sendMessageActiveSubscription($update->getMessage()?->getChat()?->getId())) {
+        if ($this->telegramMessageService->sendMessageActiveSubscription($update->getMessage()?->getChat()?->getId())) {
             return;
         }
 
@@ -68,11 +67,11 @@ class TelegramBotHandler
     public function handlePaymentCard(): void {
         $telegramId = TelegramService::getUpdate()?->getCallbackQuery()?->getRawData()['from']['id'] ?? null;
 
-        if ($this->telegramValidationHandler->isMenuButtonsClick()) {
+        if ($this->telegramService->isMenuButtonsClick()) {
             return;
         }
 
-        if ($this->telegramValidationHandler->sendMessageActiveSubscription($telegramId)) {
+        if ($this->telegramMessageService->sendMessageActiveSubscription($telegramId)) {
             return;
         }
 
@@ -125,11 +124,11 @@ class TelegramBotHandler
 
         $telegramId = $preCheckoutQuery->getFrom()->getId() ?? null;
 
-        if ($this->telegramValidationHandler->sendMessageActiveSubscription($telegramId)) {
+        if ($this->telegramMessageService->sendMessageActiveSubscription($telegramId)) {
             $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
 
             $preCheckoutQuery->answer(false, [
-                'error_message' => $this->telegramValidationHandler->getSubscriptionErrorMessage($user),
+                'error_message' => $this->telegramMessageService->getSubscriptionErrorMessage($user),
             ]);
 
             return;
