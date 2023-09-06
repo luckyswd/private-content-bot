@@ -2,9 +2,8 @@
 
 namespace App\Controller;
 
-use App\Entity\Rate;
+use App\Entity\User;
 use App\Repository\SubscriptionRepository;
-use App\Service\TelegramService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
@@ -12,26 +11,12 @@ use Symfony\Component\Routing\Annotation\Route;
 class TestController extends AbstractController
 {
     #[Route('/test/{id}', name: 'app_test')]
-    public function index(Rate $rate, SubscriptionRepository $subscriptionRepository): JsonResponse
+    public function index(User $user, SubscriptionRepository $subscriptionRepository): JsonResponse
     {
-        $test = $subscriptionRepository->findAll();
-        foreach ($test as $t) {
-            dump($t->getAllowedCountPost());
-        }
 
-        dd(1);
+        $sub = $user->getSubscription();
+        dd($sub->getNextDate());
 
-        dd($rate->getButtonName());
-        dd($telegramService->getAllPosts());
-
-//        dump(sprintf('получаем у пользователя с id: [%s] активные подписки',  $user->getId() ));
-//        dump('активные- значит что текущая дата находится между датой начала и датой окончания подписки');
-//        dump($user->getActiveSubscriptions());
-//        dump('всегда будет возвращать ' . ArrayCollection::class);
-//
-//        dump('Получаем количество дней с момента начала подписки на текущий день');
-//        dump('сколько дней, столько можно отправить постов пользователю');
-//        dd(sprintf('Текущему пользователю можно отправить [%s] поста/ов', $user->getActiveSubscriptions()->first()->getAllowedCountPost()));
 
 
         return $this->json([

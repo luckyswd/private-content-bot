@@ -38,11 +38,18 @@ class WebhookController extends AbstractController
     ): JsonResponse {
         try {
             $telegramService->getTelegram()->handle();
+
+            //команды
             $telegramBotHandler->handelStartMessage();
+
+            //платежи
             $telegramBotHandler->handlePaymentCard();
             $telegramBotHandler->PaymentProcessor();
             $telegramBotHandler->handelSuccessfulPayment();
+
+            //Добавление постов в базу
             $telegramBotHandler->handelMassageId();
+            $telegramBotHandler->handelMenuButtons();
 
             $result = 'ok';
         } catch (TelegramException|\Error $e) {

@@ -11,6 +11,7 @@
         "doctrine/doctrine-migrations-bundle": "3.2.*",
         "doctrine/orm": "2.15.*",
         "longman/telegram-bot": "^0.81.0",
+        "symfony/apache-pack": "^1.0",
         "symfony/console": "6.3.*",
         "symfony/dotenv": "6.3.*",
         "symfony/flex": "^2",
@@ -20,7 +21,9 @@
         "symfony/yaml": "6.3.*"
     },
     "require-dev": {
-        "symfony/maker-bundle": "^1.49"
+        "symfony/maker-bundle": "^1.49",
+        "symfony/stopwatch": "6.3.*",
+        "symfony/web-profiler-bundle": "6.3.*"
     },
     "config": {
         "allow-plugins": {

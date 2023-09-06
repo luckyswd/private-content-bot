@@ -4,10 +4,10 @@ namespace App\Service;
 
 use App\Entity\Post;
 use App\Repository\PostRepository;
+use Longman\TelegramBot\Entities\CallbackQuery;
 use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Request;
-use GuzzleHttp\Client;
 use Longman\TelegramBot\Telegram;
 
 class TelegramService
@@ -16,9 +16,7 @@ class TelegramService
     public function __construct(
         private PostRepository $postRepository,
     )
-    {
-
-    }
+    {}
     public function setWebhook(): string|null {
         try {
             $result = $this->getTelegram()->setWebhook(getenv('HOOK_URL'));
@@ -58,7 +56,7 @@ class TelegramService
         return new Update($post, getenv('BOT_USERNAME'));
     }
 
-    public function getPostBtId(
+    public function getPostById(
         int $orderNumber,
     ): ?Post {
         $posts = $this->postRepository->findBy(['botName' => TelegramService::getUpdate()->getBotUsername()]);
@@ -76,27 +74,44 @@ class TelegramService
         int $orderNumber,
         int $groupIdFrom,
         string $chatIdTo,
+        bool $isLast = true,
     ): void {
-        $post = $this->getPostBtId($orderNumber);
+        $post = $this->getPostById($orderNumber);
+
         if (!$post || !$groupIdFrom || !$chatIdTo) {
             return;
         }
-
-        $inlineButton = [
-            ['text' => 'Получить следующие видео', 'callback_data' => 'btn_next_video'],
-        ];
-
-        $keyboard = [
-            [['text' => 'Получить следующие видео', 'callback_data' => 'get_next_video']],
-            [['text' => 'Получить все предыдущие видео', 'callback_data' => 'get_all_video']],
-        ];
 
         Request::copyMessage([
             'chat_id' => $chatIdTo,
             'from_chat_id' => $groupIdFrom,
             'message_id' => $post->getMessageId() ?? '',
             'protect_content' => true,
-            'reply_markup' => ['inline_keyboard' => [$inlineButton], 'keyboard' => $keyboard, 'resize_keyboard' => true, 'one_time_keyboard' => false],
+            'reply_markup' => $isLast ? json_encode(TelegramMessageService::getMenuButtons()) : '',
         ]);
+    }
+
+    public function getCountAllPostByBotName(
+        string $botName,
+    ): int {
+        $posts = $this->postRepository->findBy(['botName' => $botName]);
+
+        return count($posts);
+    }
+
+    public function isMenuButtonsClick(): bool {
+        $update = TelegramService::getUpdate();
+
+        if (!$update->getCallbackQuery() instanceof CallbackQuery) {
+            return false;
+        }
+
+        $data = $update->getCallbackQuery()->getData();
+
+        if (in_array($data, ['get_next_video', 'get_all_video'])) {
+            return true;
+        }
+
+        return false;
     }
 }

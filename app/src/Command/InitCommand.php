@@ -2,19 +2,15 @@
 
 namespace App\Command;
 
-use App\Entity\Course;
 use App\Entity\Method;
 use App\Entity\Price;
 use App\Entity\Rate;
 use App\Entity\Setting;
-use App\Entity\Subscription;
 use App\Entity\User;
-use App\Repository\CourseRepository;
 use App\Repository\RateRepository;
 use App\Repository\SubscriptionRepository;
 use App\Repository\UserRepository;
 use DateInterval;
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -33,7 +29,6 @@ class InitCommand extends Command
         private RateRepository $rateRepository,
         private EntityManagerInterface $em,
         private UserRepository $userRepository,
-        private CourseRepository $courseRepository,
         private SubscriptionRepository $subscriptionRepository,
         string $name = null,
     )
@@ -48,7 +43,6 @@ class InitCommand extends Command
         $this->initRates();
         $this->initUser();
         $this->initSubscription();
-        $this->initCourse();
         $this->initSettings();
         $this->addMethods();
 
@@ -64,9 +58,21 @@ class InitCommand extends Command
         }
 
         $ratesArray = [
-            ['name' => '1 Месяц', 'duration' => 'P1M'],
-            ['name' => 'Год', 'duration' => 'P1Y'],
-            ['name' => 'Навсегда', 'duration' => 'P20Y'],
+            [
+                'name' => 'Подписка на 1 Месяц',
+                'duration' => 'P1M',
+                'price' => '1000',
+            ],
+            [
+                'name' => 'Подписка на 1 Год',
+                'duration' => 'P1Y',
+                'price' => '11000',
+            ],
+            [
+                'name' => 'Пожизненная подписка',
+                'duration' => 'P20Y',
+                'price' => '25000',
+            ],
         ];
 
         foreach ($ratesArray as $item) {
@@ -75,9 +81,8 @@ class InitCommand extends Command
 
             $duration = new DateInterval($item['duration']);
             $rate->setDuration($duration);
-            $this->addPrice($rate);
+            $this->addPrice($rate, $item['price']);
             $this->em->persist($rate);
-
         }
 
         $this->em->flush();
@@ -111,24 +116,8 @@ class InitCommand extends Command
         $rate = $this->rateRepository->findAll()[0];
 
 
-        $subscription = new Subscription();
-        $this->em->persist($subscription);
-        $subscription->setRate($rate);
-        $subscription->setDate(new DateTimeImmutable());
-        $user->addSubscription($subscription);
+        $user->setSubscription($rate);
 
-        $this->em->flush();
-    }
-
-    private function initCourse():void {
-        $cources = $this->courseRepository->findAll();
-
-        if (count($cources) >= 1) {
-            return;
-        }
-        $course = new Course('-', 1234567);
-
-        $this->em->persist($course);
         $this->em->flush();
     }
 
@@ -145,35 +134,29 @@ class InitCommand extends Command
             $this->em->flush();
         } catch (Exception) {}
 
+        try {
+            $methodMessage = new Setting('endMessage', 'Больше нету новых видео');
+            $this->em->persist($methodMessage);
+            $this->em->flush();
+        } catch (Exception) {}
     }
 
-    private function addPrice(Rate $rate):void {
-        $priceUsd = new Price();
-        $priceUsd->setPrice(1000);
-        $priceUsd->setCurrency(Price::USD_CURRENCY);
-
+    private function addPrice(
+        Rate $rate,
+        string $price,
+    ): void {
         $priceRub = new Price();
-        $priceRub->setPrice(20000);
+        $priceRub->setPrice($price);
         $priceRub->setCurrency(Price::RUB_CURRENCY);
 
         $rate->addPrice($priceRub);
-        $rate->addPrice($priceUsd);
     }
 
     private function addMethods():void {
         $method1 = new Method();
-        $method1->setName('Сбербанк');
-        $method1->setCurrency(Price::RUB_CURRENCY);
+        $method1->setName('YКасса');
         $method1->setToken('123');
         $this->em->persist($method1);
-        $this->em->flush();
-
-
-        $method2 = new Method();
-        $method2->setName('Stripe');
-        $method2->setCurrency(Price::USD_CURRENCY);
-        $method2->setToken('1234555');
-        $this->em->persist($method2);
         $this->em->flush();
     }
 }

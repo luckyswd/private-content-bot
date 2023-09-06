@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\SubscriptionRepository;
+use DateInterval;
 use DateTime;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
@@ -20,9 +21,6 @@ class Subscription extends BaseEntity
 
     #[ORM\Column(type: 'integer', nullable: false)]
     private int $step = 0;
-
-    #[ORM\Column(type: 'string', nullable: true)]
-    private ?string $botName = null;
 
     #[ORM\Column(name: 'date', type: 'datetime_immutable', nullable: false)]
     private DateTimeImmutable $date;
@@ -65,14 +63,6 @@ class Subscription extends BaseEntity
         return $this;
     }
 
-    public function getAllowedCountPost():int {
-        $difference = $this->date->diff
-            (new DateTime()
-        );
-
-        return $difference->days;
-    }
-
     public function getStep(): int
     {
         return $this->step;
@@ -83,13 +73,24 @@ class Subscription extends BaseEntity
         $this->step = $step;
     }
 
-    public function getBotName(): ?string
-    {
-        return $this->botName;
+    public function getAllowedCountPost():int {
+        $difference = $this->date->diff
+        (new DateTime()
+        );
+
+        return ($difference->days + 1);
     }
 
-    public function setBotName(?string $botName): void
-    {
-        $this->botName = $botName;
+    public function getLeftDateString():string {
+        $subscriptionInterval = $this->getRate()->getDuration();
+        $endDate = $this->date->add($subscriptionInterval);
+
+        return $endDate->format('d.m.Y H:i');
+    }
+
+    public function getNextDate(): string {
+        $duration = sprintf('P%sD', $this->getAllowedCountPost());
+
+        return $this->date->add(new DateInterval($duration))->format('d.m.Y H:i');
     }
 }
