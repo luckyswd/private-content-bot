@@ -134,7 +134,7 @@ class InitCommand extends Command
 
     private function initSettings():void {
         try {
-            $firstMessage = new Setting('startMessage', 'Добрый день, для покупки курса следуйте инструкциям бота!');
+            $firstMessage = new Setting('startMessage', 'Добрый день! Для покупки видео-курса зарядок на каждый день следуйте инструкциям бота👇');
             $this->em->persist($firstMessage);
             $this->em->flush();
         } catch (Exception) {}
