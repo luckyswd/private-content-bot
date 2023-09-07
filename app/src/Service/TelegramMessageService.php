@@ -32,7 +32,7 @@ class TelegramMessageService
 
         Request::sendMessage([
             'chat_id' => TelegramService::getUpdate()->getCallbackQuery()->getMessage()->getChat()->getId(),
-            'text' => sprintf('Следующие видео станет доступно после %s', $user->getSubscription()->getNextDate()),
+            'text' => sprintf('Следующее видео станет доступно после %s', $user->getSubscription()->getNextDate()),
         ]);
     }
 
@@ -90,7 +90,7 @@ class TelegramMessageService
             "inline_keyboard" => [
                 [
                     [
-                        'text' => 'Получить следующие видео',
+                        'text' => 'Получить следующее видео',
                         'callback_data' => 'get_next_video'
                     ],
                 ],
