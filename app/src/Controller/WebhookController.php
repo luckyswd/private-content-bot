@@ -5,7 +5,6 @@ namespace App\Controller;
 use App\Handler\TelegramBotHandler;
 use App\Service\TelegramService;
 use Longman\TelegramBot\Exception\TelegramException;
-use Longman\TelegramBot\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;

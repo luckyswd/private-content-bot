@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Repository\UserRepository;
 use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
@@ -13,10 +15,20 @@ class User extends BaseEntity
     #[ORM\Column(type: 'integer', unique: true, nullable: false)]
     private int $telegramId;
 
-    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Subscription::class, cascade: ['persist'], fetch: "EAGER")]
-
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: Subscription::class, cascade: ['persist', 'remove'])]
     private ?Subscription $subscription = null;
+
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Message::class, cascade: ['persist'], fetch: "EAGER")]
+    private Collection $messages;
+
+    public function __construct()
+    {
+        $this->messages = new ArrayCollection();
+    }
+
+    public function getMessages(): Collection {
+        return $this->messages;
+    }
 
     public function getSubscription(): ?Subscription
     {

@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Price;
 use App\Entity\User;
+use App\Handler\TelegramMessageHandler;
 use App\Repository\RateRepository;
 use App\Repository\UserRepository;
 use Longman\TelegramBot\Request;
@@ -16,26 +17,31 @@ class TelegramMessageService
         private SettingService $settingService,
         private RateRepository $rateRepository,
         private UserRepository $userRepository,
+        private TelegramMessageHandler $telegramMessageHandler,
     )
     {}
 
     public function sendEndMessage(
         string $message,
     ): void {
-        Request::sendMessage([
+        $response = Request::sendMessage([
             'chat_id' => TelegramService::getUpdate()->getCallbackQuery()->getMessage()->getChat()->getId(),
             'text' => $message,
         ]);
+
+        $this->telegramMessageHandler->addMessage($response);
     }
 
     public function sendDeniedReceiptMessage(): void {
         /** @var User $user */
         $user = $this->userRepository->findOneBy(['telegramId' => TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId()]);
 
-        Request::sendMessage([
+        $response = Request::sendMessage([
             'chat_id' => TelegramService::getUpdate()->getCallbackQuery()->getMessage()->getChat()->getId(),
             'text' => sprintf('Следующее видео станет доступно после %s', $user->getSubscription()->getNextDate()),
         ]);
+
+        $this->telegramMessageHandler->addMessage($response);
     }
 
     public function sendPaymentsMessageAndOptions(
@@ -58,13 +64,15 @@ class TelegramMessageService
             ];
         }
 
-        Request::sendMessage(
+        $response = Request::sendMessage(
             [
                 'chat_id' => $chatId,
                 'text' => $this->getStartMessage(),
                 'reply_markup' => json_encode($inlineKeyboardButton),
             ]
         );
+
+        $this->telegramMessageHandler->addMessage($response);
     }
 
     private function getStartMessage(): string {
@@ -127,11 +135,13 @@ class TelegramMessageService
             return false;
         }
 
-        Request::sendMessage([
+        $response = Request::sendMessage([
             'chat_id' =>  $telegramId,
             'text' => $this->getSubscriptionErrorMessage($user),
             'reply_markup' => json_encode(TelegramMessageService::getMenuButtons()),
         ]);
+
+        $this->telegramMessageHandler->addMessage($response);
 
         $this->isSend = true;
 

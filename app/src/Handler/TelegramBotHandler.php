@@ -31,6 +31,7 @@ class TelegramBotHandler
         private PostRepository $postRepository,
         private TelegramMessageService $telegramMessageService,
         private SettingService $settingService,
+        private TelegramMessageHandler $telegramMessageHandler,
     )
     {
     }
@@ -114,7 +115,9 @@ class TelegramBotHandler
             'prices' => json_encode($prices),
         ];
 
-        Request::sendInvoice($postfields);
+        $response = Request::sendInvoice($postfields);
+
+        $this->telegramMessageHandler->addMessage($response);
     }
 
     public function PaymentProcessor(): void {
@@ -136,7 +139,9 @@ class TelegramBotHandler
             return;
         }
 
-        $preCheckoutQuery->answer(true);
+        $response = $preCheckoutQuery->answer(true);
+
+        $this->telegramMessageHandler->addMessage($response);
     }
 
     private function getSuccessfulPayment(): ?SuccessfulPayment {
@@ -160,7 +165,6 @@ class TelegramBotHandler
 
 Ну что? Вперед!</i>",
         ]);
-
         Request::sendMessage([
             'chat_id' =>  TelegramService::getUpdate()->getMessage()->getChat()->getId(),
             'parse_mode' => 'HTML',

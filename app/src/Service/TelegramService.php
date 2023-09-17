@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Post;
+use App\Handler\TelegramMessageHandler;
 use App\Repository\PostRepository;
 use Longman\TelegramBot\Entities\CallbackQuery;
 use Longman\TelegramBot\Entities\Update;
@@ -15,6 +16,7 @@ class TelegramService
     private ?Telegram $telegram = null;
     public function __construct(
         private PostRepository $postRepository,
+        private TelegramMessageHandler $telegramMessageHandler,
     )
     {}
     public function setWebhook(): string|null {
@@ -82,13 +84,15 @@ class TelegramService
             return;
         }
 
-        Request::copyMessage([
+        $response = Request::copyMessage([
             'chat_id' => $chatIdTo,
             'from_chat_id' => $groupIdFrom,
             'message_id' => $post->getMessageId() ?? '',
             'protect_content' => true,
             'reply_markup' => $isLast ? json_encode(TelegramMessageService::getMenuButtons()) : '',
         ]);
+
+        $this->telegramMessageHandler->addMessage($response, $chatIdTo);
     }
 
     public function getCountAllPostByBotName(
