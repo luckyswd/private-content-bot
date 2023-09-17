@@ -24,10 +24,14 @@ class User extends BaseEntity
     }
 
     public function setSubscription(Rate $rate):self {
-        $subscription = new Subscription();
+        if ($this->subscription) {
+            $subscription = $this->subscription;
+        } else {
+            $subscription = new Subscription();
+            $subscription->setStep(1);
+        }
         $subscription->setRate($rate);
         $subscription->setUser($this);
-        $subscription->setStep(1);
         $subscription->setDate(new DateTimeImmutable());
 
         $this->subscription = $subscription;
@@ -47,7 +51,6 @@ class User extends BaseEntity
         return $this;
     }
 
-    //TODO - проверяет есть ли активная подписка у пользователя: возвращает true|false
     public function hasActiveSubscription(): bool {
         $subscription = $this->subscription;
 

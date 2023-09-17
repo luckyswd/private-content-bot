@@ -19,10 +19,12 @@ class TelegramMessageService
     )
     {}
 
-    public function sendEndMessage(): void {
+    public function sendEndMessage(
+        string $message,
+    ): void {
         Request::sendMessage([
             'chat_id' => TelegramService::getUpdate()->getCallbackQuery()->getMessage()->getChat()->getId(),
-            'text' => $this->settingService->getParameterValue('endMessage'),
+            'text' => $message,
         ]);
     }
 
@@ -36,7 +38,9 @@ class TelegramMessageService
         ]);
     }
 
-    public function sendPaymentsMessageAndOptions(): void {
+    public function sendPaymentsMessageAndOptions(
+        int $chatId,
+    ): void {
         $rates = $this->rateRepository->findAll();
         $inlineKeyboardButton = [];
 
@@ -56,7 +60,7 @@ class TelegramMessageService
 
         Request::sendMessage(
             [
-                'chat_id' =>  TelegramService::getUpdate()->getMessage()->getChat()->getId(),
+                'chat_id' => $chatId,
                 'text' => $this->getStartMessage(),
                 'reply_markup' => json_encode($inlineKeyboardButton),
             ]
