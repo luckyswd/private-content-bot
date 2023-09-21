@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Entity\Message;
 use App\Repository\UserRepository;
+use App\Service\TelegramMessageService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -31,7 +32,7 @@ class CronDeleteMessageCommand extends Command
         $users = $this->userRepository->findAll();
 
         $token = $_ENV['BOT_TOKEN'];
-        $url = "https://api.telegram.org/bot$token/deleteMessage";
+        $url = "https://api.telegram.org/bot$token/editMessageText";
 
         foreach ($users as $user) {
             $messages = $user->getMessages();
@@ -47,13 +48,19 @@ class CronDeleteMessageCommand extends Command
                 $timeDifference = $currentDateTime->diff($createDate);
                 $hoursDifference = $timeDifference->h + ($timeDifference->days * 24);
 
-                if ($hoursDifference <= 1) {
+                if ($hoursDifference <= 0) {
                     continue;
                 }
 
                 $data = [
                     'chat_id' => $user->getTelegramId(),
                     'message_id' => $message->getMessageId(),
+                    'parse_mode' => 'HTML',
+                    'text' => "
+<b>🎥 Видео было доступно 48 часов! 🎥</b>
+
+❗️Вы можете получить доступ к видео снова, нажав на кнопки ниже❗️",
+                    'reply_markup' => json_encode(TelegramMessageService::getMenuButtons()),
                 ];
 
                 $options = [
