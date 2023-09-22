@@ -6,6 +6,7 @@ use App\Entity\Message;
 use App\Repository\UserRepository;
 use App\Service\TelegramMessageService;
 use Doctrine\ORM\EntityManagerInterface;
+use GuzzleHttp\Client;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -29,10 +30,12 @@ class CronDeleteMessageCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int {
         $io = new SymfonyStyle($input, $output);
+        $client = new Client();
         $users = $this->userRepository->findAll();
 
         $token = $_ENV['BOT_TOKEN'];
-        $url = "https://api.telegram.org/bot$token/editMessageText";
+        $urlDelete = "https://api.telegram.org/bot$token/deleteMessage";
+        $urlSend = "https://api.telegram.org/bot$token/sendMessage";
 
         foreach ($users as $user) {
             $messages = $user->getMessages();
@@ -48,37 +51,41 @@ class CronDeleteMessageCommand extends Command
                 $timeDifference = $currentDateTime->diff($createDate);
                 $hoursDifference = $timeDifference->h + ($timeDifference->days * 24);
 
-                if ($hoursDifference <= 0) {
-                    continue;
-                }
+//                if ($hoursDifference <= 0) {
+//                    continue;
+//                }
 
-                $data = [
+                $deleteParams = [
                     'chat_id' => $user->getTelegramId(),
                     'message_id' => $message->getMessageId(),
-                    'parse_mode' => 'HTML',
-                    'text' => "
-<b>🎥 Видео было доступно 48 часов! 🎥</b>
-
-❗️Вы можете получить доступ к видео снова, нажав на кнопки ниже❗️",
-                    'reply_markup' => json_encode(TelegramMessageService::getMenuButtons()),
-                ];
-
-                $options = [
-                    'http' => [
-                        'method' => 'POST',
-                        'header' => 'Content-Type: application/x-www-form-urlencoded',
-                        'content' => http_build_query($data),
-                    ],
                 ];
 
                 try {
-                    $context = stream_context_create($options);
-                    file_get_contents($url, false, $context);
+                    $client->post($urlDelete, [
+                        'form_params' => $deleteParams,
+                    ]);
+
                     $this->entityManager->remove($message);
                 } catch (\Exception $e) {
+                    dd($e->getMessage());
                     $this->entityManager->flush();
                 }
             }
+
+            $sendParams = [
+                'chat_id' => $user->getTelegramId(),
+                'message_id' => $message->getMessageId(),
+                'parse_mode' => 'HTML',
+                'text' => "
+<b>🎥 Видео было доступно 48 часов! 🎥</b>
+
+Вы можете получить доступ к видео, нажав на кнопки ниже❗️",
+                'reply_markup' => json_encode(TelegramMessageService::getMenuButtons()),
+            ];
+
+            $client->post($urlSend, [
+                'form_params' => $sendParams,
+            ]);
         }
 
         $this->entityManager->flush();
