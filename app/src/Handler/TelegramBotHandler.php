@@ -181,16 +181,21 @@ class TelegramBotHandler
         $this->telegramService->forwardMessage(1, getenv('ADMIN_GROUP_ID'), TelegramService::getUpdate()->getMessage()->getChat()->getId());
     }
 
-    public function handelMassageId(): void
-    {
+    public function handelMassageId(): void {
         $update = TelegramService::getUpdate();
+
         if ($update->getCallbackQuery() instanceof CallbackQuery) {
             return;
         }
 
-        $message = $update->getMessage();
-        if ($message && $message->getChat()->getId() == getenv('ADMIN_GROUP_ID')) {
-            $postId = $message->getMessageId();
+        $channelPost = $update->getChannelPost();
+
+        if (!$channelPost) {
+            return;
+        }
+
+        if ($update->getChannelPost()->getSenderChat()->getId() == getenv('ADMIN_GROUP_ID')) {
+            $postId = $channelPost->getMessageId();
             $post = new Post();
             $post->setMessageId($postId);
             $post->setBotName(TelegramService::getUpdate()->getBotUsername());
