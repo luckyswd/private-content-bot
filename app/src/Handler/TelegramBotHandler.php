@@ -188,14 +188,10 @@ class TelegramBotHandler
             return;
         }
 
-        $channelPost = $update->getChannelPost();
+        $message = $update->getMessage();
 
-        if (!$channelPost) {
-            return;
-        }
-
-        if ($update->getChannelPost()->getSenderChat()->getId() == getenv('ADMIN_GROUP_ID')) {
-            $postId = $channelPost->getMessageId();
+        if ($message && $message->getChat()->getId() == getenv('ADMIN_GROUP_ID')) {
+            $postId = $message->getMessageId();
             $post = new Post();
             $post->setMessageId($postId);
             $post->setBotName(TelegramService::getUpdate()->getBotUsername());
