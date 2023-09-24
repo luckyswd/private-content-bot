@@ -2,9 +2,11 @@
 
 namespace App\Service;
 
+use App\Entity\Presentation;
 use App\Entity\Price;
 use App\Entity\User;
 use App\Handler\TelegramMessageHandler;
+use App\Repository\PresentationRepository;
 use App\Repository\RateRepository;
 use App\Repository\UserRepository;
 use Longman\TelegramBot\Request;
@@ -18,6 +20,7 @@ class TelegramMessageService
         private RateRepository $rateRepository,
         private UserRepository $userRepository,
         private TelegramMessageHandler $telegramMessageHandler,
+        private PresentationRepository $presentationRepository,
     )
     {}
 
@@ -48,17 +51,34 @@ class TelegramMessageService
         int $chatId,
     ): void {
         $rates = $this->rateRepository->findAll();
+        $presentations = $this->presentationRepository->findAll();
         $inlineKeyboardButton = [];
 
         foreach ($rates as $rate) {
             $callbackData = [
-                'rate' => $rate->getId(),
+                'type' => 'rate',
+                'id' => $rate->getId(),
                 'currency' => Price::RUB_CURRENCY,
             ];
 
             $inlineKeyboardButton['inline_keyboard'][] = [
                 [
                     'text' => $rate->getName(),
+                    'callback_data' => json_encode($callbackData),
+                ],
+            ];
+        }
+
+        foreach ($presentations as $presentation) {
+            $callbackData = [
+                'type' => 'presentationInfo',
+                'id' => $presentation->getId(),
+                'currency' => Price::RUB_CURRENCY,
+            ];
+
+            $inlineKeyboardButton['inline_keyboard'][] = [
+                [
+                    'text' => $presentation->getName(),
                     'callback_data' => json_encode($callbackData),
                 ],
             ];
@@ -79,18 +99,25 @@ class TelegramMessageService
         $result = $this->settingService->getParameterValue('startMessage') ?? '';
         $result .= " \n";
         $rates = $this->rateRepository->findAll();
+        $presentations = $this->presentationRepository->findAll();
         $seperator = 'или';
 
         foreach ($rates as $rate) {
             $prices = $rate?->getPrices();
-            $result .= $rate?->getName() . ' -';
+            $result .= $rate?->getName() . ' зарядок' . ' -';
             $lastKeyPrices = array_key_last($prices->toArray());
 
             /** @var Price $price */
             foreach ($prices as $key => $price) {
-                $result .= sprintf(' %s %s %s', $price?->getPrice(), $price->getCurrency(), $key !== $lastKeyPrices ? $seperator : '');
+                $result .= sprintf(' %s %s %s', $price?->getPrice(), '₽', $key !== $lastKeyPrices ? $seperator : '');
             }
 
+            $result .= " \n";
+        }
+
+        /** @var Presentation $presentation */
+        foreach ($presentations as $presentation) {
+            $result .= sprintf('%s за %s ₽', $presentation->getName(), $presentation->getPrice());
             $result .= " \n";
         }
 
