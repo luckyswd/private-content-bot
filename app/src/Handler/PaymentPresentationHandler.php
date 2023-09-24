@@ -102,6 +102,8 @@ class PaymentPresentationHandler
 
         if ($invoicePayload->id === 5) {
             $presentations = $this->presentationRepository->findAll();
+            $result .= "Файл доступен для скачивания по ссылке🔽";
+            $result .= " \n";
 
             foreach ($presentations as $presentation) {
                 if (!$presentation->getFilePath()) {
@@ -118,7 +120,9 @@ class PaymentPresentationHandler
             $presentation = $this->presentationRepository->findOneBy(['id' => $invoicePayload->id]);
             $quantitySold = $presentation->getQuantitySold();
             $presentation->setQuantitySold($quantitySold + 1);
-            $result = sprintf('%s%s', getenv('BASE_URL'), $presentation->getFilePath());
+            $result .= "Файл доступен для скачивания по ссылке🔽";
+            $result .= " \n";
+            $result .= sprintf('%s%s', getenv('BASE_URL'), $presentation->getFilePath());
         }
 
         Request::sendMessage([
