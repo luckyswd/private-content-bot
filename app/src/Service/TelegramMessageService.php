@@ -64,7 +64,7 @@ class TelegramMessageService
 
             $inlineKeyboardButton['inline_keyboard'][] = [
                 [
-                    'text' => $rate->getName(),
+                    'text' => sprintf("%s зарядок - %s ₽", $rate->getName(), $rate->getPrices()->toArray()[0]->getPrice()),
                     'callback_data' => json_encode($callbackData),
                 ],
             ];
@@ -79,7 +79,7 @@ class TelegramMessageService
 
             $inlineKeyboardButton['inline_keyboard'][] = [
                 [
-                    'text' => $presentation->getName(),
+                    'text' => sprintf("%s за %s ₽", $presentation->getName(), $presentation->getPrice()),
                     'callback_data' => json_encode($callbackData),
                 ],
             ];
@@ -97,32 +97,7 @@ class TelegramMessageService
     }
 
     private function getStartMessage(): string {
-        $result = $this->settingService->getParameterValue('startMessage') ?? '';
-        $result .= " \n";
-        $rates = $this->rateRepository->findAll();
-        $presentations = $this->presentationRepository->findAll();
-        $seperator = 'или';
-
-        foreach ($rates as $rate) {
-            $prices = $rate?->getPrices();
-            $result .= $rate?->getName() . ' зарядок' . ' -';
-            $lastKeyPrices = array_key_last($prices->toArray());
-
-            /** @var Price $price */
-            foreach ($prices as $key => $price) {
-                $result .= sprintf(' %s %s %s', $price?->getPrice(), '₽', $key !== $lastKeyPrices ? $seperator : '');
-            }
-
-            $result .= " \n";
-        }
-
-        /** @var Presentation $presentation */
-        foreach ($presentations as $presentation) {
-            $result .= sprintf('%s за %s ₽', $presentation->getName(), $presentation->getPrice());
-            $result .= " \n";
-        }
-
-        return $result;
+        return $this->settingService->getParameterValue('startMessage') ?? '';
     }
 
     public function getSubscriptionErrorMessage(
