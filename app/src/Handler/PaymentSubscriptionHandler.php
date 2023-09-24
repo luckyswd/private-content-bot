@@ -55,7 +55,7 @@ class PaymentSubscriptionHandler
 
         $prices = [
             [
-                'label' => 'Подписка на ' . $rate?->getName(),
+                'label' => sprintf("%s зарядок", $rate->getName()),
                 'amount' => $price?->getPrice() * 100,
             ]
         ];
@@ -63,8 +63,8 @@ class PaymentSubscriptionHandler
         $postFields = [
             'chat_id' => TelegramService::getUpdate()?->getCallbackQuery()?->getFrom()?->getId() ?? '',
             'provider_token' => $method->getToken(),
-            'title' => sprintf('Подписка на %s', $rate?->getName()),
-            'description' => sprintf('Подписка на %s', $rate?->getName()),
+            'title' => sprintf("%s зарядок", $rate->getName()),
+            'description' => sprintf("%s зарядок", $rate->getName()),
             'payload' => [
                 'unique_id' => date('y-m-d-H-i-S'),
                 'provider_token' => $method->getToken(),
