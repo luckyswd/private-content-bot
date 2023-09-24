@@ -4,7 +4,7 @@ namespace App\Command;
 
 use App\Entity\Message;
 use App\Repository\UserRepository;
-use App\Service\TelegramMessageService;
+use App\Service\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use GuzzleHttp\Client;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -22,6 +22,7 @@ class CronDeleteMessageCommand extends Command
     public function __construct(
         private UserRepository $userRepository,
         private EntityManagerInterface $entityManager,
+        private TelegramService $telegramService,
         string $name = null
     )
     {
@@ -39,6 +40,7 @@ class CronDeleteMessageCommand extends Command
 
         foreach ($users as $user) {
             $messages = $user->getMessages();
+            $isSend = false;
 
             if ($messages->isEmpty()) {
                 continue;
@@ -51,9 +53,9 @@ class CronDeleteMessageCommand extends Command
                 $timeDifference = $currentDateTime->diff($createDate);
                 $hoursDifference = $timeDifference->h + ($timeDifference->days * 24);
 
-//                if ($hoursDifference <= 0) {
-//                    continue;
-//                }
+                if ($hoursDifference <= 46) {
+                    continue;
+                }
 
                 $deleteParams = [
                     'chat_id' => $user->getTelegramId(),
@@ -65,6 +67,8 @@ class CronDeleteMessageCommand extends Command
                         'form_params' => $deleteParams,
                     ]);
 
+                    $isSend = true;
+
                     $this->entityManager->remove($message);
                 } catch (\Exception $e) {
                     dd($e->getMessage());
@@ -72,20 +76,22 @@ class CronDeleteMessageCommand extends Command
                 }
             }
 
-            $sendParams = [
-                'chat_id' => $user->getTelegramId(),
-                'message_id' => $message->getMessageId(),
-                'parse_mode' => 'HTML',
-                'text' => "
+            if ($isSend) {
+                $sendParams = [
+                    'chat_id' => $user->getTelegramId(),
+                    'message_id' => $message->getMessageId(),
+                    'parse_mode' => 'HTML',
+                    'text' => "
 <b>🎥 Видео было доступно 48 часов! 🎥</b>
 
 Вы можете получить доступ к видео, нажав на кнопки ниже❗️",
-                'reply_markup' => json_encode(TelegramMessageService::getMenuButtons()),
-            ];
+                    'reply_markup' => json_encode($this->telegramService->getMenuButtons()),
+                ];
 
-            $client->post($urlSend, [
-                'form_params' => $sendParams,
-            ]);
+                $client->post($urlSend, [
+                    'form_params' => $sendParams,
+                ]);
+            }
         }
 
         $this->entityManager->flush();

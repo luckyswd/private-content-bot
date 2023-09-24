@@ -3,8 +3,10 @@
 namespace App\Service;
 
 use App\Entity\Post;
+use App\Entity\Price;
 use App\Handler\TelegramMessageHandler;
 use App\Repository\PostRepository;
+use App\Repository\PresentationRepository;
 use Longman\TelegramBot\Entities\CallbackQuery;
 use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Exception\TelegramException;
@@ -17,6 +19,7 @@ class TelegramService
     public function __construct(
         private PostRepository $postRepository,
         private TelegramMessageHandler $telegramMessageHandler,
+        private PresentationRepository $presentationRepository,
     )
     {}
     public function setWebhook(): string|null {
@@ -89,7 +92,7 @@ class TelegramService
             'from_chat_id' => $groupIdFrom,
             'message_id' => $post->getMessageId() ?? '',
             'protect_content' => true,
-            'reply_markup' => $isLast ? json_encode(TelegramMessageService::getMenuButtons()) : '',
+            'reply_markup' => $isLast ? json_encode($this->getMenuButtons()) : '',
         ]);
 
         $this->telegramMessageHandler->addMessage($response, $chatIdTo);
@@ -117,5 +120,41 @@ class TelegramService
         }
 
         return false;
+    }
+
+    public function getMenuButtons(): array {
+        $presentations = $this->presentationRepository->findAll();
+        $inlineKeyboardButton = [];
+
+        $inlineKeyboardButton['inline_keyboard'][] = [
+            [
+                'text' => 'Получить следующее видео',
+                'callback_data' => 'get_next_video'
+            ]
+        ];
+
+        $inlineKeyboardButton['inline_keyboard'][] = [
+            [
+                'text' => 'Получить все предыдущие видео',
+                'callback_data' => 'get_all_video'
+            ]
+        ];
+
+        foreach ($presentations as $presentation) {
+            $callbackData = [
+                'type' => 'presentationInfo',
+                'id' => $presentation->getId(),
+                'currency' => Price::RUB_CURRENCY,
+            ];
+
+            $inlineKeyboardButton['inline_keyboard'][] = [
+                [
+                    'text' => $presentation->getName(),
+                    'callback_data' => json_encode($callbackData),
+                ],
+            ];
+        }
+
+        return $inlineKeyboardButton;
     }
 }

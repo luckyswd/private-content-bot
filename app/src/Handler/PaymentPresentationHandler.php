@@ -95,20 +95,36 @@ class PaymentPresentationHandler
         $preCheckoutQuery->answer(true);
     }
 
-    /**
-     * @throws TelegramException
-     */
     public function handelSuccessfulPayment(): void {
+        $result = '';
         $invoicePayload = json_decode(TelegramBotHandler::getSuccessfulPayment()?->getInvoicePayload());
         /** @var Presentation $presentation */
-        $presentation = $this->presentationRepository->findOneBy(['id' => $invoicePayload->id]);
 
-        $filePath = sprintf('%s%s', getenv('BASE_URL'), $presentation->getFilePath());
+        if ($invoicePayload->id === 5) {
+            $presentations = $this->presentationRepository->findAll();
+
+            foreach ($presentations as $presentation) {
+                if (!$presentation->getFilePath()) {
+                    $quantitySold = $presentation->getQuantitySold();
+                    $presentation->setQuantitySold($quantitySold + 1);
+
+                    continue;
+                }
+
+                $result .= sprintf("<b>%s</b>(%s%s)",$presentation->getName(), getenv('BASE_URL'), $presentation->getFilePath());
+                $result .= " \n";
+            }
+        } else {
+            $presentation = $this->presentationRepository->findOneBy(['id' => $invoicePayload->id]);
+            $quantitySold = $presentation->getQuantitySold();
+            $presentation->setQuantitySold($quantitySold + 1);
+            $result = sprintf('%s%s', getenv('BASE_URL'), $presentation->getFilePath());
+        }
 
         Request::sendMessage([
             'chat_id' => TelegramService::getUpdate()->getMessage()->getChat()->getId(),
             'parse_mode' => 'HTML',
-            'text' => $filePath,
+            'text' => $result,
         ]);
     }
 }

@@ -21,6 +21,7 @@ class TelegramMessageService
         private UserRepository $userRepository,
         private TelegramMessageHandler $telegramMessageHandler,
         private PresentationRepository $presentationRepository,
+        private TelegramService $telegramService,
     )
     {}
 
@@ -124,25 +125,6 @@ class TelegramMessageService
         return $result;
     }
 
-    public static function getMenuButtons(): array {
-        return [
-            "inline_keyboard" => [
-                [
-                    [
-                        'text' => 'Получить следующее видео',
-                        'callback_data' => 'get_next_video'
-                    ],
-                ],
-                [
-                    [
-                        'text' => 'Получить все предыдущие видео',
-                        'callback_data' => 'get_all_video'
-                    ]
-                ]
-            ]
-        ];
-    }
-
     public function getSubscriptionErrorMessage(
         User $user,
     ): string {
@@ -165,7 +147,7 @@ class TelegramMessageService
         $response = Request::sendMessage([
             'chat_id' =>  $telegramId,
             'text' => $this->getSubscriptionErrorMessage($user),
-            'reply_markup' => json_encode(TelegramMessageService::getMenuButtons()),
+            'reply_markup' => json_encode($this->telegramService->getMenuButtons()),
         ]);
 
         $this->telegramMessageHandler->addMessage($response);
