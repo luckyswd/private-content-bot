@@ -8,6 +8,7 @@ use App\Entity\Price;
 use App\Repository\MethodRepository;
 use App\Repository\PresentationRepository;
 use App\Service\TelegramService;
+use Doctrine\ORM\EntityManagerInterface;
 use Longman\TelegramBot\Entities\Payments\PreCheckoutQuery;
 use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Request;
@@ -20,6 +21,7 @@ class PaymentPresentationHandler
         private PresentationRepository $presentationRepository,
         private MethodRepository $methodRepository,
         private KernelInterface $kernel,
+        private EntityManagerInterface $entityManager,
     ){}
 
     public function handlePresentationInfo(
@@ -130,5 +132,7 @@ class PaymentPresentationHandler
             'parse_mode' => 'HTML',
             'text' => $result,
         ]);
+
+        $this->entityManager->flush();
     }
 }
