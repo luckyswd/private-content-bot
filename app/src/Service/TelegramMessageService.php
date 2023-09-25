@@ -62,9 +62,15 @@ class TelegramMessageService
                 'currency' => Price::RUB_CURRENCY,
             ];
 
+            if ($rate->getId() === 3) {
+                $text = sprintf("%s зарядок за %s₽ вместо 3499₽", $rate->getName(), $rate->getPrices()->toArray()[0]->getPrice());
+            } else {
+                $text = sprintf("%s зарядок - %s ₽", $rate->getName(), $rate->getPrices()->toArray()[0]->getPrice());
+            }
+
             $inlineKeyboardButton['inline_keyboard'][] = [
                 [
-                    'text' => sprintf("%s зарядок - %s ₽", $rate->getName(), $rate->getPrices()->toArray()[0]->getPrice()),
+                    'text' => $text,
                     'callback_data' => json_encode($callbackData),
                 ],
             ];
@@ -77,9 +83,15 @@ class TelegramMessageService
                 'currency' => Price::RUB_CURRENCY,
             ];
 
+            if ($presentation->getId() === 5) {
+                $text = sprintf("%s за %s ₽ вместо 2100₽", $presentation->getName(), $presentation->getPrice());
+            } else {
+                $text = sprintf("%s за %s ₽", $presentation->getName(), $presentation->getPrice());
+            }
+
             $inlineKeyboardButton['inline_keyboard'][] = [
                 [
-                    'text' => sprintf("%s за %s ₽", $presentation->getName(), $presentation->getPrice()),
+                    'text' => $text,
                     'callback_data' => json_encode($callbackData),
                 ],
             ];
