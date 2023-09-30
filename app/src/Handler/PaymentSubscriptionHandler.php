@@ -65,6 +65,25 @@ class PaymentSubscriptionHandler
             'provider_token' => $method->getToken(),
             'title' => sprintf("%s зарядок", $rate->getName()),
             'description' => sprintf("%s зарядок", $rate->getName()),
+            'need_email' => true,
+            'provider_data' => [
+                'receipt' => [
+                    'items' => [
+                        [
+                            'description' => $rate->getName(),
+                            'quantity' => 1.00,
+                            'amount' => [
+                                'value' => $price->getPrice(),
+                                'currency' => $currency,
+                            ],
+                            'vat_code' => 1,
+                        ]
+                    ],
+                    'customer' => [
+                        'email' => 'ju_letta@mail.ru',
+                    ]
+                ]
+            ],
             'payload' => [
                 'unique_id' => date('y-m-d-H-i-S'),
                 'provider_token' => $method->getToken(),

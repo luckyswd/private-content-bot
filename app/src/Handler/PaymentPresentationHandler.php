@@ -78,6 +78,25 @@ class PaymentPresentationHandler
             'provider_token' => $method->getToken(),
             'title' => $presentation->getName(),
             'description' => $presentation->getName(),
+            'need_email' => true,
+            'provider_data' => [
+                'receipt' => [
+                    'items' => [
+                        [
+                            'description' => $presentation->getName(),
+                            'quantity' => 1.00,
+                            'amount' => [
+                                'value' => $presentation->getPrice(),
+                                'currency' => $currency,
+                            ],
+                            'vat_code' => 1,
+                        ]
+                    ],
+                    'customer' => [
+                        'email' => 'ju_letta@mail.ru',
+                    ]
+                ]
+            ],
             'payload' => [
                 'unique_id' => date('y-m-d-H-i-S'),
                 'provider_token' => $method->getToken(),
