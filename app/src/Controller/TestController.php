@@ -10,10 +10,14 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class TestController extends AbstractController
 {
-    #[Route('/test/{id}', name: 'app_test')]
-    public function index(User $user, SubscriptionRepository $subscriptionRepository): JsonResponse
+    #[Route('/test', name: 'app_test')]
+    public function index(): JsonResponse
     {
 
+        $jsonString = '{"provider_data":{"receipt":{"items":[{"description":"Название товара","quantity":"1","amount":{"value":"100.00","currency":"RUB"},"vat_code":1}],"customer":{"email":"mail@mail.ru"}}}}';
+
+        $data = json_decode($jsonString, true);
+        dd($data);
         $sub = $user->getSubscription();
         dd($sub->getNextDate());
 
