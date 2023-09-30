@@ -12,7 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class User extends BaseEntity
 {
-    #[ORM\Column(type: 'integer', unique: true, nullable: false)]
+    #[ORM\Column(type: 'bigint', unique: true, nullable: false)]
     private int $telegramId;
 
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: Subscription::class, cascade: ['persist', 'remove'])]
