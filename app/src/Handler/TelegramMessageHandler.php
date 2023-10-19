@@ -23,6 +23,10 @@ class TelegramMessageHandler
             return;
         }
 
+        if (is_bool($response->getResult())) {
+            return;
+        }
+
         $chatId = $chatId ?: $response->getResult()->getChat()->getId();
 
         $user = $this->userRepository->findOneBy(['telegramId' => $chatId]);

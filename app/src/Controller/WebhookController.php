@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Handler\TelegramBotHandler;
 use App\Service\TelegramService;
 use Longman\TelegramBot\Exception\TelegramException;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
@@ -34,6 +35,7 @@ class WebhookController extends AbstractController
     public function handle(
         TelegramBotHandler $telegramBotHandler,
         TelegramService $telegramService,
+        LoggerInterface $logger,
     ): JsonResponse {
         try {
             $telegramService->getTelegram()->handle();
@@ -52,7 +54,13 @@ class WebhookController extends AbstractController
 
             $result = 'ok';
         } catch (TelegramException|\Error $e) {
-            $result = $e->getMessage();
+            $result = sprintf('MESSAGE: %s', $e->getMessage());
+            $result .= sprintf('FILE: %s', $e->getFile());
+            $result .= sprintf('LINE: %s', $e->getLine());
+
+            $logger->critical(sprintf('MESSAGE: %s', $e->getMessage()));
+            $logger->critical(sprintf('FILE: %s', $e->getFile()));
+            $logger->critical(sprintf('LINE: %s', $e->getLine()));
         }
 
         return $this->json([
