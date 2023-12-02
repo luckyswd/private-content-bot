@@ -40,8 +40,9 @@ class User extends BaseEntity
             $subscription = $this->subscription;
         } else {
             $subscription = new Subscription();
-            $subscription->setStep(1);
         }
+
+        $subscription->setStep(1);
         $subscription->setRate($rate);
         $subscription->setUser($this);
         $subscription->setDate(new DateTimeImmutable());
