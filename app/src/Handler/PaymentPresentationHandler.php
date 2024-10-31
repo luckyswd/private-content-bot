@@ -118,7 +118,7 @@ class PaymentPresentationHandler
 
     public function handelSuccessfulPayment(): void {
         $result = '';
-        $invoicePayload = json_decode(TelegramBotHandler::getSuccessfulPayment()?->getInvoicePayload());
+        $invoicePayload = json_decode(TelegramBotChargersHandler::getSuccessfulPayment()?->getInvoicePayload());
         /** @var Presentation $presentation */
 
         if ($invoicePayload->id === 5) {

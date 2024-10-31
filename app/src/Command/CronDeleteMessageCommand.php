@@ -85,7 +85,7 @@ class CronDeleteMessageCommand extends Command
 <b>🎥 Видео было доступно 48 часов! 🎥</b>
 
 Вы можете получить доступ к видео, нажав на кнопки ниже❗️",
-                    'reply_markup' => json_encode($this->telegramService->getMenuButtons()),
+                    'reply_markup' => json_encode($this->telegramService->startMenuButtons()),
                 ];
 
                 $client->post($urlSend, [

@@ -12,7 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Longman\TelegramBot\Entities\CallbackQuery;
 use Longman\TelegramBot\Entities\Payments\SuccessfulPayment;
 
-class TelegramBotHandler
+class TelegramBotChargersHandler
 {
     public function __construct(
         private TelegramService  $telegramService,
@@ -38,11 +38,7 @@ class TelegramBotHandler
             return;
         }
 
-        if ($this->telegramMessageService->sendMessageActiveSubscription($update->getMessage()?->getChat()?->getId())) {
-            return;
-        }
-
-        $this->telegramMessageService->sendPaymentsMessageAndOptions($update->getMessage()?->getChat()?->getId());
+        $this->telegramMessageService->sendStartMenu($update->getMessage()?->getChat()?->getId());
     }
 
     private function getCallbackData(): string
@@ -65,6 +61,7 @@ class TelegramBotHandler
             'rate' =>  $this->paymentSubscriptionHandler->handleSubscription($callbackData),
             'presentationInfo' =>  $this->paymentPresentationHandler->handlePresentationInfo($callbackData),
             'presentation' =>  $this->paymentPresentationHandler->handlePresentation($callbackData),
+            default => ''
         };
     }
 
@@ -119,7 +116,7 @@ class TelegramBotHandler
         }
     }
 
-    public function handelMenuButtons(): void
+    public function handelMenuButtonsChargers(): void
     {
         $update = TelegramService::getUpdate();
 
@@ -128,10 +125,12 @@ class TelegramBotHandler
         }
 
         $data = $update->getCallbackQuery()->getData();
+        $data = json_decode($data);
 
-        match ($data) {
+        match ($data->type) {
             'get_all_video' => $this->handleGetAllVideo(),
             'get_next_video' => $this->handleGetNextVideo(),
+            'chargers' => $this->telegramMessageService->sendCharges($update->getCallbackQuery()->getFrom()->getId()),
             default => 'Неизвестная опция.',
         };
     }
@@ -142,12 +141,12 @@ class TelegramBotHandler
         $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
 
         if (!$user || !$user->hasActiveSubscription()) {
-            $this->telegramMessageService->sendPaymentsMessageAndOptions($telegramId);
+            $this->telegramMessageService->sendStartMenu($telegramId);
 
             return;
         }
 
-        $subscription = $user->getSubscription();
+        $subscription = $user->getSubscriptionByType();
         $step = $subscription->getStep();
         $allowedCountPost = $subscription->getAllowedCountPost();
 
@@ -181,12 +180,12 @@ class TelegramBotHandler
         }
 
         $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
-        $subscription = $user->getSubscription();
+        $subscription = $user->getSubscriptionByType();
         $allowedCountPost = $subscription->getAllowedCountPost();
         $step = $subscription->getStep();
 
         if (!$user->hasActiveSubscription()) {
-            $this->telegramMessageService->sendPaymentsMessageAndOptions($telegramId);
+            $this->telegramMessageService->sendStartMenu($telegramId);
 
             return;
         }

@@ -2,7 +2,8 @@
 
 namespace App\Controller;
 
-use App\Handler\TelegramBotHandler;
+use App\Handler\TelegramBotChargersHandler;
+use App\Handler\TelegramBotTrainingHandler;
 use App\Service\TelegramService;
 use Longman\TelegramBot\Exception\TelegramException;
 use Psr\Log\LoggerInterface;
@@ -33,7 +34,8 @@ class WebhookController extends AbstractController
 
     #[Route('/handle', name: 'handle_webhook')]
     public function handle(
-        TelegramBotHandler $telegramBotHandler,
+        TelegramBotChargersHandler $telegramBotChargersHandler,
+        TelegramBotTrainingHandler $telegramBotTrainingHandler,
         TelegramService $telegramService,
         LoggerInterface $logger,
     ): JsonResponse {
@@ -41,16 +43,30 @@ class WebhookController extends AbstractController
             $telegramService->getTelegram()->handle();
 
             //команды
-            $telegramBotHandler->handelStartMessage();
+            $telegramBotChargersHandler->handelStartMessage();
+
+            // START ЗАРЯДКИ
+            //обработка меню
+            $telegramBotChargersHandler->handelMenuButtonsChargers();
 
             //платежи
-            $telegramBotHandler->handlePaymentCard();
-            $telegramBotHandler->PaymentProcessor();
-            $telegramBotHandler->handelSuccessfulPayment();
+            $telegramBotChargersHandler->handlePaymentCard();
+            $telegramBotChargersHandler->PaymentProcessor();
+            $telegramBotChargersHandler->handelSuccessfulPayment();
 
             //Добавление постов в базу
-            $telegramBotHandler->handelMassageId();
-            $telegramBotHandler->handelMenuButtons();
+            $telegramBotChargersHandler->handelMassageId();
+            // END ЗАРЯДКИ
+
+
+            // START ТРЕНИРОВКИ
+            //обработка меню
+            $telegramBotTrainingHandler->handelMenuButtonsTrainings();
+
+            //Формирование вывода подписок
+//            $telegramBotTrainingHandler->handlePaymentMethod();
+
+            // END ТРЕНИРОВКИ
 
             $result = 'ok';
         } catch (TelegramException|\Error $e) {

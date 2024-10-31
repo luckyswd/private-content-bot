@@ -35,3 +35,19 @@ services:
             - ./app:/var/www/html
         depends_on:
             - mysql
+
+    ngrok:
+        container_name: private-content-bot-ngrok
+        image: ngrok/ngrok:3
+        restart: unless-stopped
+        command:
+            - "start"
+            - "--all"
+            - "--config"
+            - "/etc/ngrok.yml"
+        volumes:
+            - ./docker/ngrok/ngrok.yml:/etc/ngrok.yml
+        ports:
+            - 4040:4040
+        extra_hosts:
+            - "host.docker.internal:host-gateway"

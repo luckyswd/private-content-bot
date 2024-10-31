@@ -116,7 +116,7 @@ class InitCommand extends Command
         $rate = $this->rateRepository->findAll()[0];
 
 
-        $user->setSubscription($rate);
+        $user->addSubscription($rate);
 
         $this->em->flush();
     }

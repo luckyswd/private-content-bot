@@ -3,7 +3,7 @@
 namespace App\Command;
 
 use App\Entity\User;
-use App\Handler\TelegramBotHandler;
+use App\Handler\TelegramBotChargersHandler;
 use App\Repository\RateRepository;
 use App\Service\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -38,7 +38,7 @@ class UserAddCommand extends Command
 
         $user = new User();
         $user->setTelegramId(6632041688);
-        $user->setSubscription($rate);
+        $user->addSubscription($rate);
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();

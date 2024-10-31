@@ -105,10 +105,8 @@ class PaymentSubscriptionHandler
         $telegramId = $preCheckoutQuery->getFrom()->getId() ?? null;
 
         if ($this->telegramMessageService->sendMessageActiveSubscription($telegramId)) {
-            $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
-
             $preCheckoutQuery->answer(false, [
-                'error_message' => $this->telegramMessageService->getSubscriptionErrorMessage($user),
+                'error_message' => 'У вас есть активная подписка.',
             ]);
 
             return;
@@ -152,7 +150,7 @@ class PaymentSubscriptionHandler
     private function addUser(): void {
         $telegramId = TelegramService::getUpdate()->getMessage()->getChat()->getId();
         $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
-        $invoicePayload = json_decode(TelegramBotHandler::getSuccessfulPayment()?->getInvoicePayload());
+        $invoicePayload = json_decode(TelegramBotChargersHandler::getSuccessfulPayment()?->getInvoicePayload());
         $rate = $this->rateRepository->findOneBy(['id' => $invoicePayload->id]);
 
         if ($user) {
@@ -167,7 +165,7 @@ class PaymentSubscriptionHandler
 
         $user = new User();
         $user->setTelegramId($telegramId);
-        $user->setSubscription($rate);
+        $user->addSubscription($rate);
         $this->entityManager->persist($user);
 
         $this->entityManager->flush();
@@ -177,7 +175,7 @@ class PaymentSubscriptionHandler
         User $user,
         Rate $rate,
     ): void {
-        $user->setSubscription($rate);
+        $user->addSubscription($rate);
         $this->entityManager->flush();
     }
 }

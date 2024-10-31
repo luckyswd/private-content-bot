@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\SubscriptionType;
 use App\Repository\SubscriptionRepository;
 use DateInterval;
 use DateTime;
@@ -10,6 +11,10 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: SubscriptionRepository::class)]
 #[ORM\HasLifecycleCallbacks]
+#[ORM\UniqueConstraint(
+    name: 'user_type',
+    columns: ['user_id', 'type']
+)]
 class Subscription extends BaseEntity
 {
     #[ORM\ManyToOne(targetEntity: User::class, cascade: ["persist"], inversedBy: 'subscriptions')]
@@ -24,6 +29,9 @@ class Subscription extends BaseEntity
 
     #[ORM\Column(name: 'date', type: 'datetime_immutable', nullable: false)]
     private DateTimeImmutable $date;
+
+    #[ORM\Column(type: 'integer', enumType: SubscriptionType::class)]
+    private SubscriptionType $type;
 
     public function getDate(): DateTimeImmutable
     {
@@ -92,5 +100,17 @@ class Subscription extends BaseEntity
         $duration = sprintf('P%sD', $this->getAllowedCountPost());
 
         return $this->date->add(new DateInterval($duration))->format('d.m.Y H:i');
+    }
+
+    public function getType(): SubscriptionType
+    {
+        return $this->type;
+    }
+
+    public function setType(SubscriptionType $type): self
+    {
+        $this->type = $type;
+
+        return $this;
     }
 }

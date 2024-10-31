@@ -92,7 +92,7 @@ class TelegramService
             'from_chat_id' => $groupIdFrom,
             'message_id' => $post->getMessageId() ?? '',
             'protect_content' => true,
-            'reply_markup' => $isLast ? json_encode($this->getMenuButtons()) : '',
+            'reply_markup' => $isLast ? json_encode($this->getButtonForChargersVideo()) : '',
         ]);
 
         $this->telegramMessageHandler->addMessage($response, $chatIdTo);
@@ -122,22 +122,14 @@ class TelegramService
         return false;
     }
 
-    public function getMenuButtons(): array {
+    public function startMenuButtons(): array {
         $presentations = $this->presentationRepository->findAll();
-        $inlineKeyboardButton = [];
 
         $inlineKeyboardButton['inline_keyboard'][] = [
             [
-                'text' => 'Получить следующее видео',
-                'callback_data' => 'get_next_video'
-            ]
-        ];
-
-        $inlineKeyboardButton['inline_keyboard'][] = [
-            [
-                'text' => 'Получить все предыдущие видео',
-                'callback_data' => 'get_all_video'
-            ]
+                'text' => 'Зарядки',
+                'callback_data' => json_encode(['type' => 'chargers']),
+            ],
         ];
 
         foreach ($presentations as $presentation) {
@@ -147,13 +139,46 @@ class TelegramService
                 'currency' => Price::RUB_CURRENCY,
             ];
 
+            if ($presentation->getId() === 5) {
+                $text = sprintf("%s за %s ₽ вместо 2100₽", $presentation->getName(), $presentation->getPrice());
+            } else {
+                $text = sprintf("%s за %s ₽", $presentation->getName(), $presentation->getPrice());
+            }
+
             $inlineKeyboardButton['inline_keyboard'][] = [
                 [
-                    'text' => $presentation->getName(),
+                    'text' => $text,
                     'callback_data' => json_encode($callbackData),
                 ],
             ];
         }
+
+        $inlineKeyboardButton['inline_keyboard'][] = [
+            [
+                'text' => 'Программы тренировок',
+                'callback_data' => json_encode(['type' => 'training_programs']),
+            ],
+        ];
+
+        return $inlineKeyboardButton;
+    }
+
+    public function getButtonForChargersVideo(): array {
+        $inlineKeyboardButton = [];
+
+        $inlineKeyboardButton['inline_keyboard'][] = [
+            [
+                'text' => 'Получить следующее видео',
+                'callback_data' => json_encode(['type' => 'get_next_video']),
+            ]
+        ];
+
+        $inlineKeyboardButton['inline_keyboard'][] = [
+            [
+                'text' => 'Получить все предыдущие видео',
+                'callback_data' => json_encode(['type' => 'get_all_video']),
+            ]
+        ];
 
         return $inlineKeyboardButton;
     }

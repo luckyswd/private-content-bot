@@ -1,0 +1,12 @@
+authtoken: 2l9RmkaN9nlcP9lOZAnm0U7yBOL_EhP6aY6DXH6bVKSrWL1R
+connect_timeout: 30s
+console_ui: true
+dns_resolver_ips:
+  - 1.1.1.1
+  - 8.8.8.8
+version: 2
+tunnels:
+  saas:
+    addr: nginx
+    proto: http
+    domain: intent-chigger-rapidly.ngrok-free.app
