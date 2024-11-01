@@ -3,7 +3,7 @@
 namespace App\Command;
 
 use App\Entity\User;
-use App\Handler\TelegramBotChargersHandler;
+use App\Handler\TelegramBotHandler;
 use App\Repository\RateRepository;
 use App\Service\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;

@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Handler\TelegramBotChargersHandler;
+use App\Handler\TelegramBotHandler;
 use App\Handler\TelegramBotTrainingHandler;
 use App\Service\TelegramService;
 use Longman\TelegramBot\Exception\TelegramException;
@@ -34,10 +34,10 @@ class WebhookController extends AbstractController
 
     #[Route('/handle', name: 'handle_webhook')]
     public function handle(
-        TelegramBotChargersHandler $telegramBotChargersHandler,
+        TelegramBotHandler         $telegramBotChargersHandler,
         TelegramBotTrainingHandler $telegramBotTrainingHandler,
-        TelegramService $telegramService,
-        LoggerInterface $logger,
+        TelegramService            $telegramService,
+        LoggerInterface            $logger,
     ): JsonResponse {
         try {
             $telegramService->getTelegram()->handle();

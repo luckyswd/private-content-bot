@@ -150,7 +150,7 @@ class PaymentSubscriptionHandler
     private function addUser(): void {
         $telegramId = TelegramService::getUpdate()->getMessage()->getChat()->getId();
         $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
-        $invoicePayload = json_decode(TelegramBotChargersHandler::getSuccessfulPayment()?->getInvoicePayload());
+        $invoicePayload = json_decode(TelegramBotHandler::getSuccessfulPayment()?->getInvoicePayload());
         $rate = $this->rateRepository->findOneBy(['id' => $invoicePayload->id]);
 
         if ($user) {

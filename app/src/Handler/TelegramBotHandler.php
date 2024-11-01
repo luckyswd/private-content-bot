@@ -12,7 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Longman\TelegramBot\Entities\CallbackQuery;
 use Longman\TelegramBot\Entities\Payments\SuccessfulPayment;
 
-class TelegramBotChargersHandler
+class TelegramBotHandler
 {
     public function __construct(
         private TelegramService  $telegramService,
