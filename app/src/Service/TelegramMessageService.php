@@ -147,7 +147,7 @@ class TelegramMessageService
 
         $response = Request::sendMessage([
             'chat_id' => $chatId,
-            'text' => 'Для покупки подписки на тренировки жми на кнопку и следуй инструкциям бота🔽',
+            'text' => $this->getStartMessage(),
             'reply_markup' => json_encode($inlineKeyboardButton),
         ]);
 

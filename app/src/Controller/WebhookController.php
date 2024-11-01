@@ -34,7 +34,7 @@ class WebhookController extends AbstractController
 
     #[Route('/handle', name: 'handle_webhook')]
     public function handle(
-        TelegramBotHandler         $telegramBotChargersHandler,
+        TelegramBotHandler         $telegramBotHandler,
         TelegramBotTrainingHandler $telegramBotTrainingHandler,
         TelegramService            $telegramService,
         LoggerInterface            $logger,
@@ -42,20 +42,20 @@ class WebhookController extends AbstractController
         try {
             $telegramService->getTelegram()->handle();
 
-            //команды
-            $telegramBotChargersHandler->handelStartMessage();
+            //START MENU
+            $telegramBotHandler->handelStartMessage();
 
             // START ЗАРЯДКИ
             //обработка меню
-            $telegramBotChargersHandler->handelMenuButtonsChargers();
+//            $telegramBotHandler->handelMenuButtons();
 
             //платежи
-            $telegramBotChargersHandler->handlePaymentCard();
-            $telegramBotChargersHandler->PaymentProcessor();
-            $telegramBotChargersHandler->handelSuccessfulPayment();
+            $telegramBotHandler->handlePaymentCard();
+            $telegramBotHandler->PaymentProcessor();
+            $telegramBotHandler->handelSuccessfulPayment();
 
             //Добавление постов в базу
-            $telegramBotChargersHandler->handelMassageId();
+            $telegramBotHandler->handelMassageId();
             // END ЗАРЯДКИ
 
 

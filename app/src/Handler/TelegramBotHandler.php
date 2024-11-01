@@ -46,25 +46,6 @@ class TelegramBotHandler
         return TelegramService::getUpdate()?->getCallbackQuery()?->getData() ?? '';
     }
 
-    public function handlePaymentCard(): void {
-        $callbackData = json_decode($this->getCallbackData());
-
-        if ($this->telegramService->isMenuButtonsClick() || !$callbackData) {
-            return;
-        }
-
-        if (!property_exists($callbackData, 'type')) {
-            return;
-        }
-
-        match ($callbackData->type) {
-            'rate' =>  $this->paymentSubscriptionHandler->handleSubscription($callbackData),
-            'presentationInfo' =>  $this->paymentPresentationHandler->handlePresentationInfo($callbackData),
-            'presentation' =>  $this->paymentPresentationHandler->handlePresentation($callbackData),
-            default => ''
-        };
-    }
-
     public function PaymentProcessor(): void {
         $preCheckoutQuery = TelegramService::getUpdate()->getPreCheckoutQuery();
 
@@ -116,22 +97,42 @@ class TelegramBotHandler
         }
     }
 
-    public function handelMenuButtonsChargers(): void
-    {
-        $update = TelegramService::getUpdate();
+//    public function handelMenuButtons(): void
+//    {
+//        $update = TelegramService::getUpdate();
+//
+//        if (!$update->getCallbackQuery() instanceof CallbackQuery) {
+//            return;
+//        }
+//
+//        $data = $update->getCallbackQuery()->getData();
+//        $data = json_decode($data);
+//
+//        match ($data->type) {
+//
+//            default => 'Неизвестная опция.',
+//        };
+//    }
 
-        if (!$update->getCallbackQuery() instanceof CallbackQuery) {
+    public function handlePaymentCard(): void {
+        $callbackData = json_decode($this->getCallbackData());
+
+        if ($this->telegramService->isMenuButtonsClick() || !$callbackData) {
             return;
         }
 
-        $data = $update->getCallbackQuery()->getData();
-        $data = json_decode($data);
+        if (!property_exists($callbackData, 'type')) {
+            return;
+        }
 
-        match ($data->type) {
+        match ($callbackData->type) {
+            'rate' =>  $this->paymentSubscriptionHandler->handleSubscription($callbackData),
+            'presentationInfo' =>  $this->paymentPresentationHandler->handlePresentationInfo($callbackData),
+            'presentation' =>  $this->paymentPresentationHandler->handlePresentation($callbackData),
             'get_all_video' => $this->handleGetAllVideo(),
             'get_next_video' => $this->handleGetNextVideo(),
-            'chargers' => $this->telegramMessageService->sendCharges($update->getCallbackQuery()->getFrom()->getId()),
-            default => 'Неизвестная опция.',
+            'chargers' => $this->telegramMessageService->sendCharges(TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId()),
+            default => ''
         };
     }
 
