@@ -5,6 +5,7 @@ namespace App\Handler;
 use App\Entity\Method;
 use App\Entity\Rate;
 use App\Entity\User;
+use App\Enum\SubscriptionType;
 use App\Repository\MethodRepository;
 use App\Repository\PriceRepository;
 use App\Repository\RateRepository;
@@ -33,12 +34,12 @@ class PaymentSubscriptionHandler
         stdClass $callbackData,
     ): void {
         $telegramId = TelegramService::getUpdate()?->getCallbackQuery()?->getRawData()['from']['id'] ?? null;
+        $rate = $this->rateRepository->findOneBy(['id' => $callbackData->id ?? null]);
 
-        if ($this->telegramMessageService->sendMessageActiveSubscription($telegramId)) {
+        if ($this->telegramMessageService->sendMessageActiveSubscription($telegramId, $rate)) {
             return;
         }
 
-        $rate = $this->rateRepository->findOneBy(['id' => $callbackData->id ?? null]);
         $method = $this->methodRepository->findOneBy(['id' => Method::YKASSA_ID]);
         $currency = $callbackData->currency ?? null;
 
@@ -60,11 +61,13 @@ class PaymentSubscriptionHandler
             ]
         ];
 
+        $title = $rate->getSubscriptionType() !== SubscriptionType::CHARGERS ? 'тренировок' : 'зарядок';
+
         $postFields = [
             'chat_id' => TelegramService::getUpdate()?->getCallbackQuery()?->getFrom()?->getId() ?? '',
             'provider_token' => $method->getToken(),
-            'title' => sprintf("%s зарядок", $rate->getName()),
-            'description' => sprintf("%s зарядок", $rate->getName()),
+            'title' => sprintf("%s %s", $rate->getName(), $title),
+            'description' => sprintf("%s %s", $rate->getName(), $title),
             'need_email' => true,
             'provider_data' => [
                 'receipt' => [
@@ -103,8 +106,10 @@ class PaymentSubscriptionHandler
         PreCheckoutQuery $preCheckoutQuery
     ): void {
         $telegramId = $preCheckoutQuery->getFrom()->getId() ?? null;
+        $data = json_decode($preCheckoutQuery->getInvoicePayload());
+        $rate = $this->rateRepository->findOneBy(['id' => $data->id ?? null]);
 
-        if ($this->telegramMessageService->sendMessageActiveSubscription($telegramId)) {
+        if ($this->telegramMessageService->sendMessageActiveSubscription($telegramId, $rate)) {
             $preCheckoutQuery->answer(false, [
                 'error_message' => 'У вас есть активная подписка.',
             ]);
@@ -117,9 +122,30 @@ class PaymentSubscriptionHandler
         $this->telegramMessageHandler->addMessage($response);
     }
 
-    public function handelSuccessfulPayment(): void {
-        $this->addUser();
+    public function handelSuccessfulPaymentBySubscriptionType(): void {
+        $invoicePayload = json_decode(TelegramBotHandler::getSuccessfulPayment()?->getInvoicePayload());
+        $rate = $this->rateRepository->findOneBy(['id' => $invoicePayload->id]);
+        $this->addUser($rate);
 
+        match ($rate->getSubscriptionType()) {
+            SubscriptionType::CHARGERS => $this->successMessageForCHARGERS(),
+            SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT,
+            SubscriptionType::TRAINING_HOME_WITH_ELASTIC,
+            SubscriptionType::TRAINING_FOR_GYM => $this->successMessageForTRAINING(),
+        };
+    }
+    private function successMessageForTRAINING(): void {
+        Request::sendMessage([
+            'chat_id' => TelegramService::getUpdate()->getMessage()->getChat()->getId(),
+            'parse_mode' => 'HTML',
+            'text' => "
+            <b>Привет, моя дорогая!</b>
+
+<i>Хочу выразить тебе огромную благодарность за доверие и покупки моих тренировок.</i>",
+        ]);
+    }
+
+    private function successMessageForCHARGERS(): void {
         Request::sendMessage([
             'chat_id' => TelegramService::getUpdate()->getMessage()->getChat()->getId(),
             'parse_mode' => 'HTML',
@@ -147,14 +173,12 @@ class PaymentSubscriptionHandler
         $this->telegramService->forwardMessage(1, getenv('ADMIN_GROUP_ID'), TelegramService::getUpdate()->getMessage()->getChat()->getId());
     }
 
-    private function addUser(): void {
+    private function addUser($rate): void {
         $telegramId = TelegramService::getUpdate()->getMessage()->getChat()->getId();
-        $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
-        $invoicePayload = json_decode(TelegramBotHandler::getSuccessfulPayment()?->getInvoicePayload());
-        $rate = $this->rateRepository->findOneBy(['id' => $invoicePayload->id]);
+        $user = $this->userRepository->getCacheUser($telegramId);
 
         if ($user) {
-            if ($user->hasActiveSubscription()) {
+            if ($user->hasActiveSubscription($rate->getSubscriptionType())) {
                 return;
             }
 

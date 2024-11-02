@@ -32,18 +32,27 @@ class TelegramBotHandler
             return;
         }
 
+        $chatId = $update->getMessage()?->getChat()?->getId();
+
         $message = $update->getMessage()?->getText() ?? '';
+
+        if ($message === '/warmup') {
+            $this->telegramMessageService->sendCharges($chatId);
+
+            return;
+        }
+
+        if ($message === '/training') {
+            $this->telegramMessageService->sendTrainings($chatId);
+
+            return;
+        }
 
         if ($message !== '/start') {
             return;
         }
 
-        $this->telegramMessageService->sendStartMenu($update->getMessage()?->getChat()?->getId());
-    }
-
-    private function getCallbackData(): string
-    {
-        return TelegramService::getUpdate()?->getCallbackQuery()?->getData() ?? '';
+        $this->telegramMessageService->sendStartMenu($chatId);
     }
 
     public function PaymentProcessor(): void {
@@ -69,7 +78,7 @@ class TelegramBotHandler
         $invoicePayload = json_decode(self::getSuccessfulPayment()->getInvoicePayload());
 
         match ($invoicePayload->type) {
-            'rate' =>  $this->paymentSubscriptionHandler->handelSuccessfulPayment(),
+            'rate' =>  $this->paymentSubscriptionHandler->handelSuccessfulPaymentBySubscriptionType(),
             'presentation' =>  $this->paymentPresentationHandler->handelSuccessfulPayment(),
         };
     }
@@ -97,41 +106,42 @@ class TelegramBotHandler
         }
     }
 
-//    public function handelMenuButtons(): void
-//    {
-//        $update = TelegramService::getUpdate();
-//
-//        if (!$update->getCallbackQuery() instanceof CallbackQuery) {
-//            return;
-//        }
-//
-//        $data = $update->getCallbackQuery()->getData();
-//        $data = json_decode($data);
-//
-//        match ($data->type) {
-//
-//            default => 'Неизвестная опция.',
-//        };
-//    }
+    public function handleAllActionButtons(): void {
+        $update = TelegramService::getUpdate();
 
-    public function handlePaymentCard(): void {
-        $callbackData = json_decode($this->getCallbackData());
-
-        if ($this->telegramService->isMenuButtonsClick() || !$callbackData) {
+        if (!$update->getCallbackQuery() instanceof CallbackQuery) {
             return;
         }
 
-        if (!property_exists($callbackData, 'type')) {
+        $data = $update->getCallbackQuery()->getData();
+        $data = json_decode($data);
+
+        if (!property_exists($data, 'type')) {
             return;
         }
 
-        match ($callbackData->type) {
-            'rate' =>  $this->paymentSubscriptionHandler->handleSubscription($callbackData),
-            'presentationInfo' =>  $this->paymentPresentationHandler->handlePresentationInfo($callbackData),
-            'presentation' =>  $this->paymentPresentationHandler->handlePresentation($callbackData),
+        $chatId = $update->getCallbackQuery()->getFrom()->getId();
+
+        match ($data->type) {
+            //Обработка выборка подписки для зарядок
+            'rate' =>  $this->paymentSubscriptionHandler->handleSubscription($data),
+
+            //Обработка презентаций
+            'presentationInfo' =>  $this->paymentPresentationHandler->handlePresentationInfo($data),
+            'presentation' =>  $this->paymentPresentationHandler->handlePresentation($data),
+
+            //Получение след. и пред. видео для зарядок
             'get_all_video' => $this->handleGetAllVideo(),
             'get_next_video' => $this->handleGetNextVideo(),
-            'chargers' => $this->telegramMessageService->sendCharges(TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId()),
+
+            //Список зарядок
+            'chargers' => $this->telegramMessageService->sendCharges($chatId),
+
+            //Обработка меню каталога для тренировок
+            'backMenu' => $this->telegramMessageService->sendStartMenu($chatId),
+            'backCatalog', 'training_programs' => $this->telegramMessageService->sendTrainings($chatId),
+            'catalog' => $this->telegramMessageService->sendTrainings($chatId, $data->id ?? null),
+
             default => ''
         };
     }

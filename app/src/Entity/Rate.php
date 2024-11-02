@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\SubscriptionType;
 use App\Repository\RateRepository;
 use DateInterval;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -12,7 +13,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class Rate extends BaseEntity
 {
-    #[ORM\Column(type: 'string', length: '50', unique: true, nullable: false)]
+    #[ORM\Column(type: 'string', length: '50', nullable: false)]
     private string $name;
 
     #[ORM\Column(type: 'dateinterval', nullable: false)]
@@ -20,6 +21,9 @@ class Rate extends BaseEntity
 
     #[ORM\OneToMany(mappedBy: 'rate', targetEntity: Price::class, cascade: ['persist'], fetch: "EAGER")]
     private Collection $prices;
+
+    #[ORM\Column(type: 'integer', enumType: SubscriptionType::class)]
+    private SubscriptionType $subscriptionType;
 
     public function __construct()
     {
@@ -61,6 +65,18 @@ class Rate extends BaseEntity
     public function setDuration(DateInterval $duration): self
     {
         $this->duration = $duration;
+
+        return $this;
+    }
+
+    public function getSubscriptionType(): SubscriptionType
+    {
+        return $this->subscriptionType;
+    }
+
+    public function setSubscriptionType(SubscriptionType $subscriptionType): self
+    {
+        $this->subscriptionType = $subscriptionType;
 
         return $this;
     }

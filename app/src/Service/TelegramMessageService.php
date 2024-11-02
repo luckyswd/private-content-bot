@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Price;
+use App\Entity\Rate;
 use App\Entity\Subscription;
 use App\Entity\User;
 use App\Enum\SubscriptionType;
@@ -52,7 +53,7 @@ class TelegramMessageService
     }
 
     public function sendStartMenu(int $chatId): void {
-        $user = $this->userRepository->findOneBy(['telegramId' => $chatId]);
+        $user = $this->userRepository->getCacheUser($chatId);
 
         $response = Request::sendMessage(
             [
@@ -67,7 +68,7 @@ class TelegramMessageService
     }
 
     public function sendCharges(int $chatId): void {
-        $user = $this->userRepository->findOneBy(['telegramId' => $chatId]);
+        $user = $this->userRepository->getCacheUser($chatId);
 
         if ($user && $user->getSubscriptionByType()) {
             Request::sendMessage(
@@ -82,7 +83,7 @@ class TelegramMessageService
             return;
         }
 
-        $rates = $this->rateRepository->findAll();
+        $rates = $this->rateRepository->findBy(['subscriptionType' => SubscriptionType::CHARGERS]);
         $inlineKeyboardButton = [];
 
         foreach ($rates as $rate) {
@@ -119,11 +120,13 @@ class TelegramMessageService
 
     public function sendTrainings(
         int $chatId,
-        ?int $currentCatalog = null,
+        ?int $currentCatalogId = null,
     ): void {
-        $nextCatalogs = $this->trainingCatalogRepository->findBy(['subCatalog' => $currentCatalog ?: null]);
+        $user = $this->userRepository->getCacheUser($chatId);
+        $currentCatalog = $currentCatalogId ? $this->trainingCatalogRepository->findOneBy(['id' => $currentCatalogId]) : null;
+        $catalogs = $this->trainingCatalogRepository->findBy(['subCatalog' => $currentCatalogId ?: null]);
 
-        $backType = $currentCatalog ? 'backCatalog' : 'backMenu';
+        $backType = $currentCatalogId ? 'backCatalog' : 'backMenu';
         $inlineKeyboardButton['inline_keyboard'][] = [
             [
                 'text' => 'Назад',
@@ -131,18 +134,40 @@ class TelegramMessageService
             ],
         ];
 
-        foreach ($nextCatalogs as $catalog) {
-            $inlineKeyboardButton['inline_keyboard'][] = [
-                [
-                    'text' => $catalog->getName(),
-                    'callback_data' => json_encode([
-                        'type' => 'catalog',
-                        'id' => $catalog->getId(),
-                        'currency' => Price::RUB_CURRENCY,
-                        'parentId' => $catalog->getSubCatalog()?->getId() ?? null,
-                    ]),
-                ],
-            ];
+        $subscriptionType = $currentCatalog && $currentCatalog->getSubscriptionType() ? $currentCatalog->getSubscriptionType() : null;
+
+        if ($subscriptionType && !$user->hasActiveSubscription($subscriptionType)) {
+            $rates = $this->rateRepository->findBy(['subscriptionType' => $currentCatalog->getSubscriptionType()]);
+
+            foreach ($rates as $rate) {
+                $callbackData = [
+                    'type' => 'rate',
+                    'id' => $rate->getId(),
+                    'currency' => Price::RUB_CURRENCY,
+                ];
+
+                $text = sprintf("%s тренировок - %s ₽", $rate->getName(), $rate->getPrices()->toArray()[0]->getPrice());
+
+                $inlineKeyboardButton['inline_keyboard'][] = [
+                    [
+                        'text' => $text,
+                        'callback_data' => json_encode($callbackData),
+                    ],
+                ];
+            }
+        } else {
+            foreach ($catalogs as $catalog) {
+                $inlineKeyboardButton['inline_keyboard'][] = [
+                    [
+                        'text' => $catalog->getName(),
+                        'callback_data' => json_encode([
+                            'type' => 'catalog',
+                            'id' => $catalog->getId(),
+//                        'currency' => Price::RUB_CURRENCY,
+                        ]),
+                    ],
+                ];
+            }
         }
 
         $response = Request::sendMessage([
@@ -179,6 +204,7 @@ class TelegramMessageService
 
     public function sendMessageActiveSubscription(
         ?string $telegramId,
+        ?Rate $rate,
     ): bool {
         if ($this->isSend) {
             return true;
@@ -186,7 +212,7 @@ class TelegramMessageService
 
         $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
 
-        if (!$user || !$user->hasActiveSubscription()) {
+        if (!$user || !$user->hasActiveSubscription($rate->getSubscriptionType())) {
             return false;
         }
 

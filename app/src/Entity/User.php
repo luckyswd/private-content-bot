@@ -32,11 +32,8 @@ class User extends BaseEntity
         return $this->messages;
     }
 
-    public function addSubscription(
-        Rate $rate,
-        SubscriptionType $type = SubscriptionType::CHARGERS,
-    ): self {
-        $subscription = $this->getSubscriptionByType($type);
+    public function addSubscription(Rate $rate): self {
+        $subscription = $this->getSubscriptionByType($rate->getSubscriptionType());
 
         if (!$subscription) {
             $subscription = new Subscription();
@@ -46,7 +43,7 @@ class User extends BaseEntity
         $subscription->setRate($rate);
         $subscription->setUser($this);
         $subscription->setDate(new DateTimeImmutable());
-        $subscription->setType($type);
+        $subscription->setType($rate->getSubscriptionType());
 
         if (!$this->subscriptions->contains($subscription)) {
             $this->subscriptions[] = $subscription;
@@ -90,8 +87,8 @@ class User extends BaseEntity
         return $this;
     }
 
-    public function hasActiveSubscription(): bool {
-        $subscription = $this->getSubscriptionByType();
+    public function hasActiveSubscription(SubscriptionType $type = SubscriptionType::CHARGERS): bool {
+        $subscription = $this->getSubscriptionByType($type);
 
         if (!$subscription) {
             return false;

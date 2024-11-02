@@ -6,7 +6,9 @@ use App\Entity\Method;
 use App\Entity\Price;
 use App\Entity\Rate;
 use App\Entity\Setting;
+use App\Entity\TrainingCatalog;
 use App\Entity\User;
+use App\Enum\SubscriptionType;
 use App\Repository\RateRepository;
 use App\Repository\SubscriptionRepository;
 use App\Repository\UserRepository;
@@ -39,53 +41,134 @@ class InitCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+        $data = [
+            'Для дома без инвентаря/ с гантелями' => [
+                'На всё тело',
+                'На верх тела',
+                'На низ тела',
+            ],
+            'Для дома с резинками' => [
+                'На всё тело',
+                'На верх тела',
+                'На низ тела',
+            ],
+            'Для зала' => [
+                'На всё тело',
+                'Ягодицы + ноги + плечи',
+                'Гродь + руки',
+                'Спина + ягодицы',
+            ],
+        ];
 
         $this->initRates();
-        $this->initUser();
-        $this->initSubscription();
-        $this->initSettings();
-        $this->addMethods();
+        $this->createCategories($data);
 
+        $this->em->flush();
         $io->info('success');
         return Command::SUCCESS;
     }
 
-    private function initRates():void {
-        $rates = $this->rateRepository->findAll();
+    private function createCategories(array $categories, ?TrainingCatalog $parent = null): void
+    {
+        foreach ($categories as $name => $subcategories) {
+            if (is_array($subcategories)) {
+                $category = new TrainingCatalog();
+                $category->setName($name);
+                $category->setSubCatalog($parent);
+                $category->setCreatedAt(new \DateTime());
 
-        if (count($rates) >= 2) {
-            return;
+                if ($name === 'Для дома без инвентаря/ с гантелями') {
+                    $category->setSubscriptionType(SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT);
+                } elseif ($name === 'Для дома с резинками') {
+                    $category->setSubscriptionType(SubscriptionType::TRAINING_HOME_WITH_ELASTIC);
+                } else {
+                    $category->setSubscriptionType(SubscriptionType::TRAINING_FOR_GYM);
+                }
+
+                $this->em->persist($category);
+
+                $this->createCategories($subcategories, $category);
+            } else {
+                $subCategory = new TrainingCatalog();
+                $subCategory->setName($subcategories);
+                $subCategory->setSubCatalog($parent);
+                $subCategory->setCreatedAt(new \DateTime());
+
+                $this->em->persist($subCategory);
+            }
         }
+    }
 
+    private function initRates():void {
         $ratesArray = [
             [
-                'name' => 'Подписка на 1 Месяц',
+                'name' => '1 неделя',
                 'duration' => 'P1M',
-                'price' => '1000',
+                'price' => '500',
+                'type' => SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT,
             ],
             [
-                'name' => 'Подписка на 1 Год',
+                'name' => '1 месяц',
                 'duration' => 'P1Y',
                 'price' => '11000',
+                'type' => SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT,
             ],
             [
-                'name' => 'Пожизненная подписка',
+                'name' => '3 месяца',
                 'duration' => 'P20Y',
                 'price' => '25000',
+                'type' => SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT,
+            ],
+
+            [
+                'name' => '1 неделя',
+                'duration' => 'P1M',
+                'price' => '500',
+                'type' => SubscriptionType::TRAINING_HOME_WITH_ELASTIC,
+            ],
+            [
+                'name' => '1 месяц',
+                'duration' => 'P1Y',
+                'price' => '11000',
+                'type' => SubscriptionType::TRAINING_HOME_WITH_ELASTIC,
+            ],
+            [
+                'name' => '3 месяца',
+                'duration' => 'P20Y',
+                'price' => '25000',
+                'type' => SubscriptionType::TRAINING_HOME_WITH_ELASTIC,
+            ],
+
+            [
+                'name' => '1 неделя',
+                'duration' => 'P1M',
+                'price' => '500',
+                'type' => SubscriptionType::TRAINING_FOR_GYM,
+            ],
+            [
+                'name' => '1 месяц',
+                'duration' => 'P1Y',
+                'price' => '11000',
+                'type' => SubscriptionType::TRAINING_FOR_GYM,
+            ],
+            [
+                'name' => '3 месяца',
+                'duration' => 'P20Y',
+                'price' => '25000',
+                'type' => SubscriptionType::TRAINING_FOR_GYM,
             ],
         ];
 
         foreach ($ratesArray as $item) {
             $rate = new Rate();
             $rate->setName($item['name']);
+            $rate->setSubscriptionType($item['type']);
 
             $duration = new DateInterval($item['duration']);
             $rate->setDuration($duration);
             $this->addPrice($rate, $item['price']);
             $this->em->persist($rate);
         }
-
-        $this->em->flush();
     }
 
     private function initUser():void {

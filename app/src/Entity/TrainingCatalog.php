@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\SubscriptionType;
 use App\Repository\TrainingCatalogRepository;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -14,6 +15,9 @@ class TrainingCatalog extends BaseEntity
     #[ORM\ManyToOne(targetEntity: TrainingCatalog::class)]
     #[ORM\JoinColumn(name: 'sub_catalog_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?TrainingCatalog $subCatalog = null;
+
+    #[ORM\Column(type: 'integer', nullable: true, enumType: SubscriptionType::class)]
+    private ?SubscriptionType $subscriptionType;
 
     public function getName(): string
     {
@@ -42,5 +46,17 @@ class TrainingCatalog extends BaseEntity
     public function getParentCategory(): ?string
     {
         return $this->subCatalog?->getName();
+    }
+
+    public function getSubscriptionType(): ?SubscriptionType
+    {
+        return $this->subscriptionType;
+    }
+
+    public function setSubscriptionType(?SubscriptionType $subscriptionType): self
+    {
+        $this->subscriptionType = $subscriptionType;
+
+        return $this;
     }
 }

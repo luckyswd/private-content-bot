@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Handler\TelegramBotHandler;
-use App\Handler\TelegramBotTrainingHandler;
 use App\Service\TelegramService;
 use Longman\TelegramBot\Exception\TelegramException;
 use Psr\Log\LoggerInterface;
@@ -34,10 +33,9 @@ class WebhookController extends AbstractController
 
     #[Route('/handle', name: 'handle_webhook')]
     public function handle(
-        TelegramBotHandler         $telegramBotHandler,
-        TelegramBotTrainingHandler $telegramBotTrainingHandler,
-        TelegramService            $telegramService,
-        LoggerInterface            $logger,
+        TelegramBotHandler $telegramBotHandler,
+        TelegramService $telegramService,
+        LoggerInterface $logger,
     ): JsonResponse {
         try {
             $telegramService->getTelegram()->handle();
@@ -45,31 +43,18 @@ class WebhookController extends AbstractController
             //START MENU
             $telegramBotHandler->handelStartMessage();
 
-            // START ЗАРЯДКИ
-            //обработка меню
-//            $telegramBotHandler->handelMenuButtons();
+            //Обработка кликов на кнопки
+            $telegramBotHandler->handleAllActionButtons();
 
             //платежи
-            $telegramBotHandler->handlePaymentCard();
             $telegramBotHandler->PaymentProcessor();
             $telegramBotHandler->handelSuccessfulPayment();
 
             //Добавление постов в базу
             $telegramBotHandler->handelMassageId();
-            // END ЗАРЯДКИ
-
-
-            // START ТРЕНИРОВКИ
-            //обработка меню
-            $telegramBotTrainingHandler->handelMenuButtonsTrainings();
-
-            //Формирование вывода подписок
-//            $telegramBotTrainingHandler->handlePaymentMethod();
-
-            // END ТРЕНИРОВКИ
 
             $result = 'ok';
-        } catch (TelegramException|\Error $e) {
+        } catch (TelegramException|\Error|\Throwable $e) {
             $result = sprintf('MESSAGE: %s', $e->getMessage());
             $result .= sprintf('FILE: %s', $e->getFile());
             $result .= sprintf('LINE: %s', $e->getLine());

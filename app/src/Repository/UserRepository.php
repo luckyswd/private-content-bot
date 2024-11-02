@@ -16,6 +16,8 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class UserRepository extends ServiceEntityRepository
 {
+    private ?User $user = null;
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, User::class);
@@ -46,5 +48,16 @@ class UserRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult()
         ;
+    }
+
+    public function getCacheUser(int $chatId): ?User
+    {
+        if ($this->user) {
+            return $this->user;
+        }
+
+        $this->user = $this->findOneBy(['telegramId' => $chatId]);
+
+        return $this->user;
     }
 }
