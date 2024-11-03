@@ -41,22 +41,23 @@ class InitCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+
         $data = [
-            'Для дома без инвентаря/ с гантелями' => [
-                'На всё тело',
-                'На верх тела',
-                'На низ тела',
+            SubscriptionType::getRUname(SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT) => [
+                TrainingCatalog::MAPPING[TrainingCatalog::FULL_BODY],
+                TrainingCatalog::MAPPING[TrainingCatalog::UPPER_BODY],
+                TrainingCatalog::MAPPING[TrainingCatalog::LOWER_BODY],
             ],
-            'Для дома с резинками' => [
-                'На всё тело',
-                'На верх тела',
-                'На низ тела',
+            SubscriptionType::getRUname(SubscriptionType::TRAINING_HOME_WITH_ELASTIC) => [
+                TrainingCatalog::MAPPING[TrainingCatalog::FULL_BODY],
+                TrainingCatalog::MAPPING[TrainingCatalog::UPPER_BODY],
+                TrainingCatalog::MAPPING[TrainingCatalog::LOWER_BODY],
             ],
-            'Для зала' => [
-                'На всё тело',
-                'Ягодицы + ноги + плечи',
-                'Гродь + руки',
-                'Спина + ягодицы',
+            SubscriptionType::getRUname(SubscriptionType::TRAINING_FOR_GYM) => [
+                TrainingCatalog::MAPPING[TrainingCatalog::FULL_BODY],
+                TrainingCatalog::MAPPING[TrainingCatalog::GLUTES_LEGS_SHOULDERS],
+                TrainingCatalog::MAPPING[TrainingCatalog::CHEST_ARMS],
+                TrainingCatalog::MAPPING[TrainingCatalog::BACK_GLUTES],
             ],
         ];
 
@@ -77,7 +78,7 @@ class InitCommand extends Command
                 $category->setSubCatalog($parent);
                 $category->setCreatedAt(new \DateTime());
 
-                if ($name === 'Для дома без инвентаря/ с гантелями') {
+                if ($name === SubscriptionType::getRUname(SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT)) {
                     $category->setSubscriptionType(SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT);
                 } elseif ($name === 'Для дома с резинками') {
                     $category->setSubscriptionType(SubscriptionType::TRAINING_HOME_WITH_ELASTIC);

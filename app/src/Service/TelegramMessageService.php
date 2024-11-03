@@ -192,7 +192,7 @@ class TelegramMessageService
 
         /** @var Subscription $subscription */
         foreach ($subscriptions as $subscription) {
-            $result .= sprintf(PHP_EOL . PHP_EOL . "<b>Ваш доступ активен до</b> %s ⏱️ %s<b>Тип Подписки:</b> %s 📌",
+            $result .= sprintf(PHP_EOL . PHP_EOL . "<b>Ваш доступ активен до</b> %s ⏱️ %s<b>Тип Подписки:</b> Программа тренировок '%s' 📌",
                 $user->getSubscriptionByType($subscription->getType())?->getLeftDateString(),
                 PHP_EOL,
                 SubscriptionType::getRUname($subscription->getType()),

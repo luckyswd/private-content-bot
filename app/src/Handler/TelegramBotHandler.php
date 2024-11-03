@@ -3,7 +3,11 @@
 namespace App\Handler;
 
 use App\Entity\Post;
+use App\Entity\PostTraining;
+use App\Entity\TrainingCatalog;
+use App\Enum\SubscriptionType;
 use App\Repository\PostRepository;
+use App\Repository\TrainingCatalogRepository;
 use App\Repository\UserRepository;
 use App\Service\SettingService;
 use App\Service\TelegramMessageService;
@@ -23,6 +27,7 @@ class TelegramBotHandler
         private SettingService $settingService,
         private PaymentSubscriptionHandler $paymentSubscriptionHandler,
         private PaymentPresentationHandler $paymentPresentationHandler,
+        private TrainingCatalogRepository $trainingCatalogRepository,
     ){}
 
     public function handelStartMessage(): void {
@@ -96,12 +101,54 @@ class TelegramBotHandler
 
         $message = $update->getMessage();
 
-        if ($message && $message->getChat()->getId() == getenv('ADMIN_GROUP_ID')) {
+        if (!$message)  {
+            return;
+        }
+
+        if ($message->getChat()->getId() == getenv('ADMIN_GROUP_ID')) {
             $postId = $message->getMessageId();
             $post = new Post();
             $post->setMessageId($postId);
             $post->setBotName(TelegramService::getUpdate()->getBotUsername());
             $this->entityManager->persist($post);
+            $this->entityManager->flush();
+        }
+
+        if ($message->getChat()->getId() == getenv('ADMIN_TRAINING_GROUP_ID')) {
+            $video = $message->getVideo();
+
+            if (!$video) {
+                return;
+            }
+
+            $parseFileName = explode('|', $video->getFileName());
+            $mainCategory = $parseFileName[0] ?? null;
+            $subCategory = $parseFileName[1] ?? null;
+            $algorithmNumber = $parseFileName[2] ?? null;
+            $order = $parseFileName[3] ?? null;
+
+            if (!$mainCategory || !$subCategory || !$algorithmNumber || !$order) {
+                return;
+            }
+
+            $postId = $message->getMessageId();
+            $mainCategory = $this->trainingCatalogRepository->findOneBy(['name' => SubscriptionType::getRUnameByStringType($mainCategory)]);
+            $subCategory = $this->trainingCatalogRepository->findOneBy(
+                [
+                    'name' => TrainingCatalog::MAPPING[$subCategory],
+                    'subCatalog' => $mainCategory,
+                ]
+            );
+
+            $postTraining = (new PostTraining())
+                ->setMessageId($postId)
+                ->setBotName(TelegramService::getUpdate()->getBotUsername())
+                ->setAlgorithmNumber((int)$algorithmNumber)
+                ->setCatalog($subCategory)
+                ->setOrder((int)$order)
+                ->setCreatedAt(new \DateTime());
+
+            $this->entityManager->persist($postTraining);
             $this->entityManager->flush();
         }
     }
