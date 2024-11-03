@@ -74,12 +74,12 @@ class PostTraining extends BaseEntity
 
     public function getOrder(): int
     {
-        return $this->order;
+        return $this->postOrder;
     }
 
     public function setOrder(int $order): self
     {
-        $this->order = $order;
+        $this->postOrder = $order;
 
         return $this;
     }

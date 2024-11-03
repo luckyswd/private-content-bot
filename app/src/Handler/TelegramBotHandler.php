@@ -131,6 +131,7 @@ class TelegramBotHandler
                 return;
             }
 
+            $order = str_replace('.mp4', '', $order);
             $postId = $message->getMessageId();
             $mainCategory = $this->trainingCatalogRepository->findOneBy(['name' => SubscriptionType::getRUnameByStringType($mainCategory)]);
             $subCategory = $this->trainingCatalogRepository->findOneBy(
