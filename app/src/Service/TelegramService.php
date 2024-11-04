@@ -12,6 +12,7 @@ use App\Repository\PostRepository;
 use App\Repository\PostTrainingRepository;
 use App\Repository\PresentationRepository;
 use App\Repository\UserRepository;
+use DateTime;
 use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Request;
@@ -112,7 +113,7 @@ class TelegramService
             [
                 'chat_id' => $chatIdTo,
                 'text' => $this->getMessageForNextVideo($subscriptionType),
-                'reply_markup' => json_encode($this->getButtonForTrainingVideo($catalog, $subscriptionType)),
+                'reply_markup' => json_encode($this->getButtonForTrainingVideo($catalog, $subscriptionType, $chatIdTo)),
                 'parse_mode' => 'HTML',
             ]
         );
@@ -207,9 +208,10 @@ class TelegramService
     public function getButtonForTrainingVideo(
         TrainingCatalog $catalog,
         SubscriptionType $subscriptionType,
+        string $chatIdTo,
     ): array {
-
-        $inlineKeyboardButton = [];
+        $user = $this->userRepository->getCacheUser($chatIdTo);
+        $subscription = $user->getSubscriptionByType($subscriptionType);
 
         $inlineKeyboardButton['inline_keyboard'][] = [
             [
@@ -222,16 +224,18 @@ class TelegramService
             ]
         ];
 
-        $inlineKeyboardButton['inline_keyboard'][] = [
-            [
-                'text' => 'Получить предедущий цикл тренировок',
-                'callback_data' => json_encode([
-                    'type' => 'prevCycle',
-                    'subscription_id' => $subscriptionType->value,
-                    'cat_id' => $catalog->getId(),
-                ]),
-            ]
-        ];
+        if ($subscription->getStep() > 1 || ($subscription->getDate() && (new DateTime())->diff($subscription->getDate())->days > 5)) {
+            $inlineKeyboardButton['inline_keyboard'][] = [
+                [
+                    'text' => 'Получить предыдущий цикл тренировок',
+                    'callback_data' => json_encode([
+                        'type' => 'prevCycle',
+                        'subscription_id' => $subscriptionType->value,
+                        'cat_id' => $catalog->getId(),
+                    ]),
+                ]
+            ];
+        }
 
         return $inlineKeyboardButton;
     }
