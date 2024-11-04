@@ -21,13 +21,26 @@ enum SubscriptionType: int
 
     public static function getRUnameByStringType(string $stringType): string
     {
-        $type = match ($stringType) {
+        return self::getRUname(self::getSubscriptionTypeByName($stringType));
+    }
+
+    public static function getSubscriptionTypeByName(string $stringType): SubscriptionType
+    {
+        return match ($stringType) {
             self::CHARGERS->name => self::CHARGERS,
             self::TRAINING_HOME_WITHOUT_EQUIPMENT->name => self::TRAINING_HOME_WITHOUT_EQUIPMENT,
             self::TRAINING_HOME_WITH_ELASTIC->name => self::TRAINING_HOME_WITH_ELASTIC,
             self::TRAINING_FOR_GYM->name => self::TRAINING_FOR_GYM,
         };
+    }
 
-        return self::getRUname($type);
+    public static function getSubscriptionTypeByValue(int $value): SubscriptionType
+    {
+        return match ($value) {
+            self::CHARGERS->value => self::CHARGERS,
+            self::TRAINING_HOME_WITHOUT_EQUIPMENT->value => self::TRAINING_HOME_WITHOUT_EQUIPMENT,
+            self::TRAINING_HOME_WITH_ELASTIC->value => self::TRAINING_HOME_WITH_ELASTIC,
+            self::TRAINING_FOR_GYM->value => self::TRAINING_FOR_GYM,
+        };
     }
 }

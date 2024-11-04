@@ -2,10 +2,10 @@
 
 namespace App\Entity;
 
-use App\Repository\PostRepository;
+use App\Repository\PostTrainingRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: PostRepository::class)]
+#[ORM\Entity(repositoryClass: PostTrainingRepository::class)]
 class PostTraining extends BaseEntity
 {
     #[ORM\Column(type: 'integer', nullable: false)]

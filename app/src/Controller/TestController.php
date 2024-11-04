@@ -8,6 +8,7 @@ use App\Enum\SubscriptionType;
 use App\Repository\SubscriptionRepository;
 use App\Repository\TrainingCatalogRepository;
 use App\Repository\UserRepository;
+use App\Service\TelegramService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
@@ -15,8 +16,17 @@ use Symfony\Component\Routing\Annotation\Route;
 class TestController extends AbstractController
 {
     #[Route('/test', name: 'app_test')]
-    public function index(UserRepository $userRepository): JsonResponse
+    public function index(UserRepository $userRepository, TelegramService $telegramService, TrainingCatalogRepository $trainingCatalogRepository): JsonResponse
     {
+        $catalog = $trainingCatalogRepository->findOneBy(['id' => 2]);
+
+        $telegramService->forwardMessageTraining(
+            1,
+            $catalog,
+            '762780623'
+        );
+        dd(1);
+
         $user = $userRepository->findOneBy(['id' => 4149]);
         $subscriptions = $user->getSubscriptions();
 

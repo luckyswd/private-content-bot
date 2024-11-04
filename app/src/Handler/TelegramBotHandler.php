@@ -182,6 +182,10 @@ class TelegramBotHandler
             'get_all_video' => $this->handleGetAllVideo(),
             'get_next_video' => $this->handleGetNextVideo(),
 
+            //Получение цикл тренировок или прошлый
+            'nextCycle' => $this->handleNextCycleVideo(),
+            'prevCycle' => $this->handlePrevCycleVideo(),
+
             //Список зарядок
             'chargers' => $this->telegramMessageService->sendCharges($chatId),
 
@@ -238,7 +242,7 @@ class TelegramBotHandler
             return;
         }
 
-        $user = $this->userRepository->findOneBy(['telegramId' => $telegramId]);
+        $user = $this->userRepository->getCacheUser($telegramId);
         $subscription = $user->getSubscriptionByType();
         $allowedCountPost = $subscription->getAllowedCountPost();
         $step = $subscription->getStep();
@@ -256,7 +260,7 @@ class TelegramBotHandler
         }
 
         if ($allowedCountPost <= $step) {
-            $this->telegramMessageService->sendDeniedReceiptMessage();
+            $this->telegramMessageService->sendDeniedReceiptMessage(SubscriptionType::CHARGERS);
 
             return;
         }
@@ -270,5 +274,79 @@ class TelegramBotHandler
         );
 
         $this->entityManager->flush();
+    }
+
+    private function handleNextCycleVideo(): void {
+        $callBackQuery = TelegramService::getUpdate()->getCallbackQuery();
+        $data = $callBackQuery->getData();
+        $data = json_decode($data);
+
+        $telegramId = $callBackQuery->getFrom()->getId();
+        $botUsername = $callBackQuery->getBotUsername();
+
+        $subscriptionType = SubscriptionType::getSubscriptionTypeByValue($data->subscription_id);
+        $catalog = $this->trainingCatalogRepository->findOneBy(['id' => $data->cat_id]);
+
+        $user = $this->userRepository->getCacheUser($telegramId);
+        $subscription = $user->getSubscriptionByType($subscriptionType);
+
+        $allowedCountPost = $subscription->getAllowedCountPost();
+        $step = $subscription->getStep();
+
+        if (!$user->hasActiveSubscription($subscriptionType)) {
+            $this->telegramMessageService->sendStartMenu($telegramId);
+
+            return;
+        }
+
+        if ($step >= $this->telegramService->getCountAllPostTrainingByCatalog($botUsername, $catalog, $step)) {
+            $this->telegramMessageService->sendEndMessage($this->settingService->getParameterValue('endMessage'));
+
+            return;
+        }
+
+        if ($allowedCountPost <= $step) {
+            $this->telegramMessageService->sendDeniedReceiptMessage($subscriptionType);
+
+            return;
+        }
+
+        $subscription->setStep($step + 1);
+
+        $this->telegramService->forwardMessageTraining(
+            algorithmNumber: $subscription->getStep(),
+            catalog: $catalog,
+            chatIdTo: TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId()
+        );
+
+        $this->entityManager->flush();
+    }
+
+    private function handlePrevCycleVideo(): void {
+        $callBackQuery = TelegramService::getUpdate()->getCallbackQuery();
+        $data = $callBackQuery->getData();
+        $data = json_decode($data);
+
+        $telegramId = $callBackQuery->getFrom()->getId();
+
+        $subscriptionType = SubscriptionType::getSubscriptionTypeByValue($data->subscription_id);
+        $catalog = $this->trainingCatalogRepository->findOneBy(['id' => $data->cat_id]);
+
+        $user = $this->userRepository->getCacheUser($telegramId);
+        $subscription = $user->getSubscriptionByType($subscriptionType);
+
+        $step = $subscription->getStep();
+
+        if (!$user->hasActiveSubscription($subscriptionType)) {
+            $this->telegramMessageService->sendStartMenu($telegramId);
+
+            return;
+        }
+
+        $this->telegramService->forwardMessageTraining(
+            algorithmNumber: $step - 1,
+            catalog: $catalog,
+            chatIdTo: TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId()
+        );
     }
 }

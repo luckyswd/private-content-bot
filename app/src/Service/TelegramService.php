@@ -4,10 +4,14 @@ namespace App\Service;
 
 use App\Entity\Post;
 use App\Entity\Price;
+use App\Entity\TrainingCatalog;
+use App\Entity\User;
+use App\Enum\SubscriptionType;
 use App\Handler\TelegramMessageHandler;
 use App\Repository\PostRepository;
+use App\Repository\PostTrainingRepository;
 use App\Repository\PresentationRepository;
-use Longman\TelegramBot\Entities\CallbackQuery;
+use App\Repository\UserRepository;
 use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Request;
@@ -20,6 +24,8 @@ class TelegramService
         private PostRepository $postRepository,
         private TelegramMessageHandler $telegramMessageHandler,
         private PresentationRepository $presentationRepository,
+        private PostTrainingRepository $postTrainingRepository,
+        private UserRepository $userRepository,
     )
     {}
     public function setWebhook(): string|null {
@@ -75,6 +81,43 @@ class TelegramService
         return null;
     }
 
+    public function forwardMessageTraining(
+        int $algorithmNumber,
+        TrainingCatalog $catalog,
+        string $chatIdTo,
+        bool $isLast = false,
+    ): void {
+        if (!$chatIdTo) {
+            return;
+        }
+
+        $posts = $this->postTrainingRepository->findBy(['catalog' => $catalog, 'algorithmNumber' => $algorithmNumber]);
+
+        foreach ($posts as $post) {
+            $response = Request::copyMessage([
+                'chat_id' => $chatIdTo,
+                'from_chat_id' => getenv('ADMIN_TRAINING_GROUP_ID'),
+                'message_id' => $post->getMessageId() ?? '',
+                'protect_content' => true,
+            ]);
+
+            $this->telegramMessageHandler->addMessage($response, $chatIdTo);
+        }
+
+        $subscriptionType = !$catalog->getSubscriptionType()
+            ? $catalog->getSubCatalog()->getSubscriptionType()
+            : $catalog->getSubscriptionType();
+
+        Request::sendMessage(
+            [
+                'chat_id' => $chatIdTo,
+                'text' => $this->getMessageForNextVideo($subscriptionType),
+                'reply_markup' => json_encode($this->getButtonForTrainingVideo($catalog, $subscriptionType)),
+                'parse_mode' => 'HTML',
+            ]
+        );
+    }
+
     public function forwardMessage(
         int $orderNumber,
         int $groupIdFrom,
@@ -106,20 +149,18 @@ class TelegramService
         return count($posts);
     }
 
-    public function isMenuButtonsClick(): bool {
-        $update = TelegramService::getUpdate();
+    public function getCountAllPostTrainingByCatalog(
+        string $botName,
+        TrainingCatalog $catalog,
+        int $algorithmNumber,
+    ): int {
+        $posts = $this->postTrainingRepository->findBy([
+            'botName' => $botName,
+            'algorithmNumber' => $algorithmNumber,
+            'catalog' => $catalog
+        ]);
 
-        if (!$update->getCallbackQuery() instanceof CallbackQuery) {
-            return false;
-        }
-
-        $data = $update->getCallbackQuery()->getData();
-
-        if (in_array($data, ['get_next_video', 'get_all_video'])) {
-            return true;
-        }
-
-        return false;
+        return count($posts);
     }
 
     public function startMenuButtons(): array {
@@ -163,6 +204,38 @@ class TelegramService
         return $inlineKeyboardButton;
     }
 
+    public function getButtonForTrainingVideo(
+        TrainingCatalog $catalog,
+        SubscriptionType $subscriptionType,
+    ): array {
+
+        $inlineKeyboardButton = [];
+
+        $inlineKeyboardButton['inline_keyboard'][] = [
+            [
+                'text' => 'Получить следующий цикл тренировок',
+                'callback_data' => json_encode([
+                    'type' => 'nextCycle',
+                    'subscription_id' => $subscriptionType->value,
+                    'cat_id' => $catalog->getId(),
+                ]),
+            ]
+        ];
+
+        $inlineKeyboardButton['inline_keyboard'][] = [
+            [
+                'text' => 'Получить предедущий цикл тренировок',
+                'callback_data' => json_encode([
+                    'type' => 'prevCycle',
+                    'subscription_id' => $subscriptionType->value,
+                    'cat_id' => $catalog->getId(),
+                ]),
+            ]
+        ];
+
+        return $inlineKeyboardButton;
+    }
+
     public function getButtonForChargersVideo(): array {
         $inlineKeyboardButton = [];
 
@@ -181,5 +254,12 @@ class TelegramService
         ];
 
         return $inlineKeyboardButton;
+    }
+
+    public function getMessageForNextVideo(SubscriptionType $subscriptionType): string {
+        /** @var User $user */
+        $user = $this->userRepository->getCacheUser(TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId());
+
+        return sprintf('Следующее видео станет доступно после %s', $user->getSubscriptionByType($subscriptionType)->getNextDate());
     }
 }

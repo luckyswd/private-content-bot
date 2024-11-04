@@ -23,7 +23,6 @@ class TelegramMessageService
         private RateRepository $rateRepository,
         private UserRepository $userRepository,
         private TelegramMessageHandler $telegramMessageHandler,
-        private PresentationRepository $presentationRepository,
         private TelegramService $telegramService,
         private TrainingCatalogRepository $trainingCatalogRepository,
     )
@@ -40,13 +39,10 @@ class TelegramMessageService
         $this->telegramMessageHandler->addMessage($response);
     }
 
-    public function sendDeniedReceiptMessage(): void {
-        /** @var User $user */
-        $user = $this->userRepository->findOneBy(['telegramId' => TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId()]);
-
+    public function sendDeniedReceiptMessage(SubscriptionType $subscriptionType): void {
         $response = Request::sendMessage([
             'chat_id' => TelegramService::getUpdate()->getCallbackQuery()->getMessage()->getChat()->getId(),
-            'text' => sprintf('Следующее видео станет доступно после %s', $user->getSubscriptionByType()->getNextDate()),
+            'text' => $this->telegramService->getMessageForNextVideo($subscriptionType),
         ]);
 
         $this->telegramMessageHandler->addMessage($response);
@@ -59,7 +55,7 @@ class TelegramMessageService
             [
                 'chat_id' => $chatId,
                 'parse_mode' => 'HTML',
-                'text' => $user?->hasActiveSubscription() ? $this->messageActiveSubscription($user) : $this->getStartMessage(),
+                'text' => !$user->getSubscriptions()->isEmpty() ? $this->messageActiveSubscription($user) : $this->getStartMessage(),
                 'reply_markup' => json_encode($this->telegramService->startMenuButtons()),
             ]
         );
@@ -74,7 +70,7 @@ class TelegramMessageService
             Request::sendMessage(
                 [
                     'chat_id' => $chatId,
-                    'text' => $this->getStartMessage(),
+                    'text' => !$user->getSubscriptions()->isEmpty() ? $this->messageActiveSubscription($user) : $this->getStartMessage(),
                     'reply_markup' => json_encode($this->telegramService->getButtonForChargersVideo()),
                     'parse_mode' => 'HTML',
                 ]
@@ -110,8 +106,9 @@ class TelegramMessageService
         $response = Request::sendMessage(
             [
                 'chat_id' => $chatId,
-                'text' => $this->getStartMessage(),
+                'text' => !$user->getSubscriptions()->isEmpty() ? $this->messageActiveSubscription($user) : $this->getStartMessage(),
                 'reply_markup' => json_encode($inlineKeyboardButton),
+                'parse_mode' => 'HTML',
             ]
         );
 
@@ -156,24 +153,30 @@ class TelegramMessageService
                 ];
             }
         } else {
-            foreach ($catalogs as $catalog) {
-                $inlineKeyboardButton['inline_keyboard'][] = [
-                    [
-                        'text' => $catalog->getName(),
-                        'callback_data' => json_encode([
-                            'type' => 'catalog',
-                            'id' => $catalog->getId(),
-//                        'currency' => Price::RUB_CURRENCY,
-                        ]),
-                    ],
-                ];
+            if (!empty($catalogs)) {
+                foreach ($catalogs as $catalog) {
+                    $inlineKeyboardButton['inline_keyboard'][] = [
+                        [
+                            'text' => $catalog->getName(),
+                            'callback_data' => json_encode([
+                                'type' => 'catalog',
+                                'id' => $catalog->getId(),
+                            ]),
+                        ],
+                    ];
+                }
+            } else {
+                $subscription = $user->getSubscriptionByType($currentCatalog->getSubCatalog()->getSubscriptionType());
+                $inlineKeyboardButton = [];
+                $this->telegramService->forwardMessageTraining($subscription->getStep(), $currentCatalog,  $chatId);
             }
         }
 
         $response = Request::sendMessage([
             'chat_id' => $chatId,
-            'text' => $this->getStartMessage(),
+            'text' => !$user->getSubscriptions()->isEmpty() ? $this->messageActiveSubscription($user) : $this->getStartMessage(),
             'reply_markup' => json_encode($inlineKeyboardButton),
+            'parse_mode' => 'HTML',
         ]);
 
         $this->telegramMessageHandler->addMessage($response);
