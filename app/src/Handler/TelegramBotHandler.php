@@ -302,12 +302,14 @@ class TelegramBotHandler
 
         if ($step >= $maxAlgorithmCount) {
             $algorithmNumber = $step % $maxAlgorithmCount + 1;
-        } else {
+        } elseif ($step !== 1) {
             $algorithmNumber = $step;
             $algorithmNumber++;
+        } else {
+            $algorithmNumber = $step;
         }
 
-        if ($allowedCountPost <= $step) {
+        if ($allowedCountPost <= $step && $step !== 1) {
             $this->telegramMessageService->sendDeniedReceiptMessage($subscriptionType);
 
             return;
