@@ -1,4 +1,4 @@
-authtoken: 2l9RmkaN9nlcP9lOZAnm0U7yBOL_EhP6aY6DXH6bVKSrWL1R
+authtoken: 2CiVrnp2tgeAZ0WXngPRV4kAs2s_5mWHpGVYVn81hcCYMRbYK
 connect_timeout: 30s
 console_ui: true
 dns_resolver_ips:
@@ -9,4 +9,4 @@ tunnels:
   saas:
     addr: nginx
     proto: http
-    domain: intent-chigger-rapidly.ngrok-free.app
+    domain: pumped-dassie-stirring.ngrok-free.app

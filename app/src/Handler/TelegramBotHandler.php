@@ -121,7 +121,7 @@ class TelegramBotHandler
                 return;
             }
 
-            $parseFileName = explode('|', $video->getFileName());
+            $parseFileName = explode(' ', $video->getFileName());
             $mainCategory = $parseFileName[0] ?? null;
             $subCategory = $parseFileName[1] ?? null;
             $algorithmNumber = $parseFileName[2] ?? null;
@@ -282,7 +282,6 @@ class TelegramBotHandler
         $data = json_decode($data);
 
         $telegramId = $callBackQuery->getFrom()->getId();
-        $botUsername = $callBackQuery->getBotUsername();
 
         $subscriptionType = SubscriptionType::getSubscriptionTypeByValue($data->subscription_id);
         $catalog = $this->trainingCatalogRepository->findOneBy(['id' => $data->cat_id]);
@@ -299,10 +298,13 @@ class TelegramBotHandler
             return;
         }
 
-        if ($step >= $this->telegramService->getCountAllPostTrainingByCatalog($botUsername, $catalog, $step)) {
-            $this->telegramMessageService->sendEndMessage($this->settingService->getParameterValue('endMessage'));
+        $maxAlgorithmCount = $catalog->getMaxAlgorithmCount();
 
-            return;
+        if ($step >= $maxAlgorithmCount) {
+            $algorithmNumber = $step % $maxAlgorithmCount + 1;
+        } else {
+            $algorithmNumber = $step;
+            $algorithmNumber++;
         }
 
         if ($allowedCountPost <= $step) {
@@ -314,7 +316,7 @@ class TelegramBotHandler
         $subscription->setStep($step + 1);
 
         $this->telegramService->forwardMessageTraining(
-            algorithmNumber: $subscription->getStep(),
+            algorithmNumber: $algorithmNumber,
             catalog: $catalog,
             chatIdTo: TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId()
         );
@@ -343,8 +345,23 @@ class TelegramBotHandler
             return;
         }
 
+        $maxAlgorithmCount = $catalog->getMaxAlgorithmCount();
+
+        if ($step > $maxAlgorithmCount) {
+            $algorithmNumber = $step % $maxAlgorithmCount;
+
+            if ($algorithmNumber === 1) {
+                $algorithmNumber = $maxAlgorithmCount;
+            } else {
+                $algorithmNumber--;
+            }
+        } else {
+            $algorithmNumber = $step;
+            $algorithmNumber--;
+        }
+
         $this->telegramService->forwardMessageTraining(
-            algorithmNumber: $step - 1,
+            algorithmNumber: $algorithmNumber,
             catalog: $catalog,
             chatIdTo: TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId()
         );

@@ -9,6 +9,7 @@ use App\Enum\SubscriptionType;
 use App\Repository\MethodRepository;
 use App\Repository\PriceRepository;
 use App\Repository\RateRepository;
+use App\Repository\TrainingCatalogRepository;
 use App\Repository\UserRepository;
 use App\Service\TelegramMessageService;
 use App\Service\TelegramService;
@@ -28,6 +29,7 @@ class PaymentSubscriptionHandler
         private UserRepository $userRepository,
         private TelegramService $telegramService,
         private EntityManagerInterface $entityManager,
+        private TrainingCatalogRepository $trainingCatalogRepository,
     ){}
 
     public function handleSubscription(
@@ -131,18 +133,24 @@ class PaymentSubscriptionHandler
             SubscriptionType::CHARGERS => $this->successMessageForCHARGERS(),
             SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT,
             SubscriptionType::TRAINING_HOME_WITH_ELASTIC,
-            SubscriptionType::TRAINING_FOR_GYM => $this->successMessageForTRAINING(),
+            SubscriptionType::TRAINING_FOR_GYM => $this->successMessageForTRAINING($rate->getSubscriptionType()),
         };
     }
-    private function successMessageForTRAINING(): void {
+
+    private function successMessageForTRAINING(SubscriptionType $subscriptionType): void {
+        $catalog = $this->trainingCatalogRepository->findOneBy(['name' => SubscriptionType::getRUname($subscriptionType)]);
+        $chatId = TelegramService::getUpdate()->getMessage()->getChat()->getId();
+
         Request::sendMessage([
-            'chat_id' => TelegramService::getUpdate()->getMessage()->getChat()->getId(),
+            'chat_id' => $chatId,
             'parse_mode' => 'HTML',
             'text' => "
             <b>Привет, моя дорогая!</b>
 
 <i>Хочу выразить тебе огромную благодарность за доверие и покупки моих тренировок.</i>",
         ]);
+
+        $this->telegramMessageService->sendTrainings($chatId, $catalog->getId() ?? null);
     }
 
     private function successMessageForCHARGERS(): void {

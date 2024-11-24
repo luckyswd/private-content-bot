@@ -15,7 +15,7 @@ enum SubscriptionType: int
             self::CHARGERS => 'Зарядки',
             self::TRAINING_HOME_WITHOUT_EQUIPMENT => 'Для дома без инвентаря или с гантелями',
             self::TRAINING_HOME_WITH_ELASTIC => 'Для дома с резинками',
-            self::TRAINING_FOR_GYM => 'Для тренировки для зала',
+            self::TRAINING_FOR_GYM => 'Для зала',
         };
     }
 

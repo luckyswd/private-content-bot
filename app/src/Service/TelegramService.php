@@ -86,7 +86,6 @@ class TelegramService
         int $algorithmNumber,
         TrainingCatalog $catalog,
         string $chatIdTo,
-        bool $isLast = false,
     ): void {
         if (!$chatIdTo) {
             return;
@@ -112,7 +111,7 @@ class TelegramService
         Request::sendMessage(
             [
                 'chat_id' => $chatIdTo,
-                'text' => $this->getMessageForNextVideo($subscriptionType),
+                'text' => "❗️ Данные видео будут доступны в течение 48 часов ❗️",
                 'reply_markup' => json_encode($this->getButtonForTrainingVideo($catalog, $subscriptionType, $chatIdTo)),
                 'parse_mode' => 'HTML',
             ]
@@ -261,8 +260,14 @@ class TelegramService
     }
 
     public function getMessageForNextVideo(SubscriptionType $subscriptionType): string {
+        $chatId = TelegramService::getUpdate()->getCallbackQuery()?->getFrom()?->getId();
+
+        if (!$chatId) {
+            $chatId = TelegramService::getUpdate()->getMessage()->getChat()->getId();
+        }
+
         /** @var User $user */
-        $user = $this->userRepository->getCacheUser(TelegramService::getUpdate()->getCallbackQuery()->getFrom()->getId());
+        $user = $this->userRepository->getCacheUser($chatId);
 
         return sprintf('Следующее видео станет доступно после %s', $user->getSubscriptionByType($subscriptionType)->getNextDate());
     }

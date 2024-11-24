@@ -55,9 +55,8 @@ class InitCommand extends Command
             ],
             SubscriptionType::getRUname(SubscriptionType::TRAINING_FOR_GYM) => [
                 TrainingCatalog::MAPPING[TrainingCatalog::FULL_BODY],
-                TrainingCatalog::MAPPING[TrainingCatalog::GLUTES_LEGS_SHOULDERS],
-                TrainingCatalog::MAPPING[TrainingCatalog::CHEST_ARMS],
-                TrainingCatalog::MAPPING[TrainingCatalog::BACK_GLUTES],
+                TrainingCatalog::MAPPING[TrainingCatalog::UPPER_BODY],
+                TrainingCatalog::MAPPING[TrainingCatalog::LOWER_BODY],
             ],
         ];
 
@@ -80,10 +79,13 @@ class InitCommand extends Command
 
                 if ($name === SubscriptionType::getRUname(SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT)) {
                     $category->setSubscriptionType(SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT);
+                    $category->setMaxAlgorithmCount(8);
                 } elseif ($name === 'Для дома с резинками') {
                     $category->setSubscriptionType(SubscriptionType::TRAINING_HOME_WITH_ELASTIC);
+                    $category->setMaxAlgorithmCount(7);
                 } else {
                     $category->setSubscriptionType(SubscriptionType::TRAINING_FOR_GYM);
+                    $category->setMaxAlgorithmCount(11);
                 }
 
                 $this->em->persist($category);
@@ -94,6 +96,15 @@ class InitCommand extends Command
                 $subCategory->setName($subcategories);
                 $subCategory->setSubCatalog($parent);
                 $subCategory->setCreatedAt(new \DateTime());
+
+                $maxAlgorithmCount = match ($parent->getSubscriptionType()) {
+                    SubscriptionType::TRAINING_HOME_WITHOUT_EQUIPMENT => 8,
+                    SubscriptionType::TRAINING_HOME_WITH_ELASTIC => 7,
+                    SubscriptionType::TRAINING_FOR_GYM => 11,
+                    default => null,
+                };
+
+                $subCategory->setMaxAlgorithmCount($maxAlgorithmCount);
 
                 $this->em->persist($subCategory);
             }
