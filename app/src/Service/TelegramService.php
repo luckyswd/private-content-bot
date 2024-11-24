@@ -214,7 +214,7 @@ class TelegramService
 
         $inlineKeyboardButton['inline_keyboard'][] = [
             [
-                'text' => 'Получить следующий цикл тренировок',
+                'text' => 'Получить следующию тренировку',
                 'callback_data' => json_encode([
                     'type' => 'nextCycle',
                     'subscription_id' => $subscriptionType->value,
