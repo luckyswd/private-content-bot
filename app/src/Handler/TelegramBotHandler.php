@@ -15,6 +15,7 @@ use App\Service\TelegramService;
 use Doctrine\ORM\EntityManagerInterface;
 use Longman\TelegramBot\Entities\CallbackQuery;
 use Longman\TelegramBot\Entities\Payments\SuccessfulPayment;
+use Longman\TelegramBot\Request;
 
 class TelegramBotHandler
 {
@@ -309,10 +310,14 @@ class TelegramBotHandler
             $algorithmNumber = $step;
         }
 
-        if ($allowedCountPost <= $step && $step !== 1) {
+        if ($allowedCountPost <= $step) {
             $this->telegramMessageService->sendDeniedReceiptMessage($subscriptionType);
 
             return;
+        }
+
+        if ($step === 1) {
+            $this->telegramMessageService->sendStartMessageForTrainingAfterPay();
         }
 
         $subscription->setStep($step + 1);
