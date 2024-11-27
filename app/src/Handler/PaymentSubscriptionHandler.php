@@ -4,12 +4,14 @@ namespace App\Handler;
 
 use App\Entity\Method;
 use App\Entity\Rate;
+use App\Entity\TrainingCatalogSubscription;
 use App\Entity\User;
 use App\Enum\SubscriptionType;
 use App\Repository\MethodRepository;
 use App\Repository\PriceRepository;
 use App\Repository\RateRepository;
 use App\Repository\TrainingCatalogRepository;
+use App\Repository\TrainingCatalogSubscriptionRepository;
 use App\Repository\UserRepository;
 use App\Service\TelegramMessageService;
 use App\Service\TelegramService;
@@ -30,6 +32,7 @@ class PaymentSubscriptionHandler
         private TelegramService $telegramService,
         private EntityManagerInterface $entityManager,
         private TrainingCatalogRepository $trainingCatalogRepository,
+        private TrainingCatalogSubscriptionRepository $trainingCatalogSubscriptionRepository,
     ){}
 
     public function handleSubscription(
@@ -201,6 +204,7 @@ class PaymentSubscriptionHandler
         $user = new User();
         $user->setTelegramId($telegramId);
         $user->addSubscription($rate);
+        $this->addTrainingCatalogSubscription($rate, $user);
         $this->entityManager->persist($user);
 
         $this->entityManager->flush();
@@ -211,6 +215,42 @@ class PaymentSubscriptionHandler
         Rate $rate,
     ): void {
         $user->addSubscription($rate);
+        $this->addTrainingCatalogSubscription($rate, $user);
         $this->entityManager->flush();
+    }
+
+    private function addTrainingCatalogSubscription(
+        Rate $rate,
+        User $user,
+    ): void {
+        $subscriptionType = $rate->getSubscriptionType();
+
+        if ($subscriptionType === SubscriptionType::CHARGERS) {
+            return;
+        }
+
+        $trainingCatalog = $this->trainingCatalogRepository->findOneBy(['subscriptionType' => $subscriptionType]);
+        $subCatalogs = $this->trainingCatalogRepository->findBy(['subCatalog' => $trainingCatalog]);
+        $subscription = $user->getSubscriptionByType($subscriptionType);
+
+        foreach ($subCatalogs as $catalog) {
+            $trainingCatalogSubscription = $this->trainingCatalogSubscriptionRepository->findOneBy([
+                'subscription' => $subscription,
+                'trainingCatalog' => $catalog,
+            ]);
+
+            if ($trainingCatalogSubscription) {
+                $trainingCatalogSubscription->setStep(1);
+
+                continue;
+            }
+
+            $trainingCatalogSubscription = new TrainingCatalogSubscription();
+            $trainingCatalogSubscription->setSubscription($user->getSubscriptionByType($subscriptionType));
+            $trainingCatalogSubscription->setStep(1);
+            $trainingCatalogSubscription->setTrainingCatalog($catalog);
+
+            $this->entityManager->persist($trainingCatalogSubscription);
+        }
     }
 }

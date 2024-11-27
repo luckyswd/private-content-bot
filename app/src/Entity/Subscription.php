@@ -7,6 +7,8 @@ use App\Repository\SubscriptionRepository;
 use DateInterval;
 use DateTime;
 use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: SubscriptionRepository::class)]
@@ -32,6 +34,14 @@ class Subscription extends BaseEntity
 
     #[ORM\Column(type: 'integer', enumType: SubscriptionType::class)]
     private SubscriptionType $type;
+
+    #[ORM\OneToMany(mappedBy: 'subscription', targetEntity: TrainingCatalogSubscription::class)]
+    private Collection $trainingCatalogSubscriptions;
+
+    public function __construct()
+    {
+        $this->trainingCatalogSubscriptions = new ArrayCollection();
+    }
 
     public function getDate(): DateTimeImmutable
     {
@@ -110,6 +120,47 @@ class Subscription extends BaseEntity
     public function setType(SubscriptionType $type): self
     {
         $this->type = $type;
+
+        return $this;
+    }
+
+    public function getTrainingCatalogSubscriptionByCatalog(TrainingCatalog $catalog): ?TrainingCatalogSubscription
+    {
+        /** @var TrainingCatalogSubscription $trainingCatalogSubscription */
+        foreach ($this->trainingCatalogSubscriptions as $trainingCatalogSubscription) {
+            if ($trainingCatalogSubscription->getTrainingCatalog() === $catalog) {
+                return $trainingCatalogSubscription;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return Collection<int, TrainingCatalogSubscription>
+     */
+    public function getTrainingCatalogSubscriptions(): Collection
+    {
+        return $this->trainingCatalogSubscriptions;
+    }
+
+    public function addTrainingCatalogSubscription(TrainingCatalogSubscription $trainingCatalogSubscription): static
+    {
+        if (!$this->trainingCatalogSubscriptions->contains($trainingCatalogSubscription)) {
+            $this->trainingCatalogSubscriptions->add($trainingCatalogSubscription);
+            $trainingCatalogSubscription->setSubscription($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTrainingCatalogSubscription(TrainingCatalogSubscription $trainingCatalogSubscription): static
+    {
+        if ($this->trainingCatalogSubscriptions->removeElement($trainingCatalogSubscription)) {
+            if ($trainingCatalogSubscription->getSubscription() === $this) {
+                $trainingCatalogSubscription->setSubscription(null);
+            }
+        }
 
         return $this;
     }

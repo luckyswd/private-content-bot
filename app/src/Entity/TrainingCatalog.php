@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Enum\SubscriptionType;
 use App\Repository\TrainingCatalogRepository;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -35,6 +36,14 @@ class TrainingCatalog extends BaseEntity
 
     #[ORM\OneToMany(mappedBy: 'catalog', targetEntity: PostTraining::class, cascade: ['persist'], fetch: "EAGER")]
     private Collection $posts;
+
+    #[ORM\OneToMany(mappedBy: 'trainingCatalog', targetEntity: TrainingCatalogSubscription::class)]
+    private Collection $trainingCatalogSubscriptions;
+
+    public function __construct()
+    {
+        $this->trainingCatalogSubscriptions = new ArrayCollection();
+    }
 
     public function getName(): string
     {
@@ -90,6 +99,36 @@ class TrainingCatalog extends BaseEntity
     public function setMaxAlgorithmCount(?int $maxAlgorithmCount): self
     {
         $this->maxAlgorithmCount = $maxAlgorithmCount;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, TrainingCatalogSubscription>
+     */
+    public function getTrainingCatalogSubscriptions(): Collection
+    {
+        return $this->trainingCatalogSubscriptions;
+    }
+
+    public function addTrainingCatalogSubscription(TrainingCatalogSubscription $trainingCatalogSubscription): static
+    {
+        if (!$this->trainingCatalogSubscriptions->contains($trainingCatalogSubscription)) {
+            $this->trainingCatalogSubscriptions->add($trainingCatalogSubscription);
+            $trainingCatalogSubscription->setTrainingCatalog($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTrainingCatalogSubscription(TrainingCatalogSubscription $trainingCatalogSubscription): static
+    {
+        if ($this->trainingCatalogSubscriptions->removeElement($trainingCatalogSubscription)) {
+            // set the owning side to null (unless already changed)
+            if ($trainingCatalogSubscription->getTrainingCatalog() === $this) {
+                $trainingCatalogSubscription->setTrainingCatalog(null);
+            }
+        }
 
         return $this;
     }

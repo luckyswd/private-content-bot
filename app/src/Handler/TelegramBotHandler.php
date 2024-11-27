@@ -291,7 +291,8 @@ class TelegramBotHandler
         $subscription = $user->getSubscriptionByType($subscriptionType);
 
         $allowedCountPost = $subscription->getAllowedCountPost();
-        $step = $subscription->getStep();
+        $trainingCatalogSubscription = $subscription->getTrainingCatalogSubscriptionByCatalog($catalog);
+        $step = $trainingCatalogSubscription->getStep();
 
         if (!$user->hasActiveSubscription($subscriptionType)) {
             $this->telegramMessageService->sendStartMenu($telegramId);
@@ -316,11 +317,7 @@ class TelegramBotHandler
             return;
         }
 
-        if ($step === 1) {
-            $this->telegramMessageService->sendStartMessageForTrainingAfterPay();
-        }
-
-        $subscription->setStep($step + 1);
+        $trainingCatalogSubscription->setStep($step + 1);
 
         $this->telegramService->forwardMessageTraining(
             algorithmNumber: $algorithmNumber,
@@ -343,8 +340,9 @@ class TelegramBotHandler
 
         $user = $this->userRepository->getCacheUser($telegramId);
         $subscription = $user->getSubscriptionByType($subscriptionType);
+        $trainingCatalogSubscription = $subscription->getTrainingCatalogSubscriptionByCatalog($catalog);
 
-        $step = $subscription->getStep();
+        $step = $trainingCatalogSubscription->getStep();
 
         if (!$user->hasActiveSubscription($subscriptionType)) {
             $this->telegramMessageService->sendStartMenu($telegramId);

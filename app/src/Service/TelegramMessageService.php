@@ -198,13 +198,14 @@ class TelegramMessageService
                 }
             } else {
                 $subscription = $user->getSubscriptionByType($currentCatalog->getSubCatalog()->getSubscriptionType());
+                $trainingCatalogSubscription = $subscription->getTrainingCatalogSubscriptionByCatalog($currentCatalog);
                 $inlineKeyboardButton = [];
 
-                if ($subscription->getStep() === 1) {
+                if ($trainingCatalogSubscription->getStep() === 1) {
                     $this->sendStartMessageForTrainingAfterPay();
                 }
 
-                $this->telegramService->forwardMessageTraining($subscription->getStep(), $currentCatalog,  $chatId);
+                $this->telegramService->forwardMessageTraining($trainingCatalogSubscription->getStep(), $currentCatalog,  $chatId);
             }
         }
 

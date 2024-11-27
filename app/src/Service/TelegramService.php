@@ -211,6 +211,7 @@ class TelegramService
     ): array {
         $user = $this->userRepository->getCacheUser($chatIdTo);
         $subscription = $user->getSubscriptionByType($subscriptionType);
+        $trainingCatalogSubscription = $subscription->getTrainingCatalogSubscriptionByCatalog($catalog);
 
         $inlineKeyboardButton['inline_keyboard'][] = [
             [
@@ -223,10 +224,10 @@ class TelegramService
             ]
         ];
 
-        if ($subscription->getStep() > 1 || ($subscription->getDate() && (new DateTime())->diff($subscription->getDate())->days > 5)) {
+        if ($trainingCatalogSubscription->getStep() > 1 || ($subscription->getDate() && (new DateTime())->diff($subscription->getDate())->days > 5)) {
             $inlineKeyboardButton['inline_keyboard'][] = [
                 [
-                    'text' => 'Получить предыдущий цикл тренировок',
+                    'text' => 'Получить предыдущею тренировку',
                     'callback_data' => json_encode([
                         'type' => 'prevCycle',
                         'subscription_id' => $subscriptionType->value,
