@@ -95,7 +95,7 @@ class TelegramMessageService
     public function sendCharges(int $chatId): void {
         $user = $this->userRepository->getCacheUser($chatId);
 
-        if ($user && $user->getSubscriptionByType()) {
+        if ($user && $user->getSubscriptionByType() && $user->hasActiveSubscription()) {
             Request::sendMessage(
                 [
                     'chat_id' => $chatId,
