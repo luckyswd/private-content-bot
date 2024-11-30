@@ -20,6 +20,7 @@ use Symfony\Component\HttpKernel\KernelInterface;
 )]
 class CreatePostTrainingCommand extends Command
 {
+    private int $totalCountPosts = 0;
     protected function configure(): void
     {
         $this
@@ -41,6 +42,7 @@ class CreatePostTrainingCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+        $this->totalCountPosts = 0;
 
         $dirs = [
             $this->kernel->getProjectDir() . '/' . 'post_training_content' . '/Для зала/На верх тела',
@@ -63,16 +65,20 @@ class CreatePostTrainingCommand extends Command
         $this->entityManager->flush();
 
         foreach ($dirs as $dir) {
-            $this->handle($dir);
+            $this->handle($dir, $io);
 
             $io->info('end ' . $dir);
         }
 
+        $io->info($this->totalCountPosts);
 
         return Command::SUCCESS;
     }
 
-    private function handle(string $dir): void {
+    private function handle(
+        string $dir,
+        SymfonyStyle $io,
+    ): void {
         $token = $_ENV['BOT_TOKEN'];
         $chatId = $_ENV['ADMIN_TRAINING_GROUP_FOR_FORWARD_ID'];
         $url = "https://api.telegram.org/bot$token/sendVideo";
@@ -125,6 +131,10 @@ class CreatePostTrainingCommand extends Command
             }
         }
 
+        $this->totalCountPosts += count($results);
+
+        $io->progressStart(count($results));
+
         foreach ($results as $result) {
             $videoPath = $result['videoPath'];
 
@@ -146,8 +156,18 @@ class CreatePostTrainingCommand extends Command
             curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-            curl_exec($ch);
+            $response = curl_exec($ch);
+
+            if ($response === false) {
+                $io->error('cURL Error: ' . curl_error($ch));
+            }
+
             curl_close($ch);
+
+            sleep(2);
+            $io->progressAdvance();
         }
+
+        $io->progressFinish();
     }
 }

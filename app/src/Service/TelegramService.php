@@ -215,7 +215,7 @@ class TelegramService
 
         $inlineKeyboardButton['inline_keyboard'][] = [
             [
-                'text' => 'Получить следующею тренировку',
+                'text' => 'Получить следующую тренировку',
                 'callback_data' => json_encode([
                     'type' => 'nextCycle',
                     'subscription_id' => $subscriptionType->value,
@@ -227,7 +227,7 @@ class TelegramService
         if ($trainingCatalogSubscription->getStep() > 1 || ($subscription->getDate() && (new DateTime())->diff($subscription->getDate())->days > 5)) {
             $inlineKeyboardButton['inline_keyboard'][] = [
                 [
-                    'text' => 'Получить предыдущею тренировку',
+                    'text' => 'Получить предыдущую тренировку',
                     'callback_data' => json_encode([
                         'type' => 'prevCycle',
                         'subscription_id' => $subscriptionType->value,
