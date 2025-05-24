@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         subDiv.innerHTML = `
         <p class="type">Подписка: <span>${sub.type}</span></p>
-        <p class="endDate">Дата подписки: <span>${sub.endDate}</span></p>
+        <p class="endDate">Дата окончания подписки: <span>${sub.endDate}</span></p>
       `;
 
         subscriptionsContainer.appendChild(subDiv);
