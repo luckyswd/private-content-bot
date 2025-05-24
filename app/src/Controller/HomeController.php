@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Subscription;
 use App\Entity\User;
 use App\Enum\SubscriptionType;
+use App\Handler\PaymentSubscriptionHandler;
 use App\Repository\RateRepository;
 use App\Repository\SubscriptionRepository;
 use App\Repository\UserRepository;
@@ -107,8 +108,13 @@ class HomeController extends AbstractController
     }
 
     #[Route('/api/home/data/add', name: 'app_home_user_data_add', methods: ['POST'])]
-    public function userDataAdd(Request $request, UserRepository $userRepository, EntityManagerInterface $entityManager, RateRepository $rateRepository): JsonResponse
-    {
+    public function userDataAdd(
+        Request $request,
+        UserRepository $userRepository,
+        EntityManagerInterface $entityManager,
+        RateRepository $rateRepository,
+        PaymentSubscriptionHandler $paymentSubscriptionHandler,
+    ): JsonResponse {
         $token = $request->headers->get('token');
 
         if (!$this->isTokenValid($token)) {
@@ -127,9 +133,11 @@ class HomeController extends AbstractController
 
         $rate = $rateRepository->findOneBy(['id' => $rateId]);
 
+
         $user->setTelegramId($telegramId);
         $user->addSubscription($rate);
 
+        $paymentSubscriptionHandler->addTrainingCatalogSubscription($rate, $user);
         $entityManager->persist($user);
         $entityManager->flush();
 

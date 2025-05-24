@@ -219,7 +219,7 @@ class PaymentSubscriptionHandler
         $this->entityManager->flush();
     }
 
-    private function addTrainingCatalogSubscription(
+    public function addTrainingCatalogSubscription(
         Rate $rate,
         User $user,
     ): void {
