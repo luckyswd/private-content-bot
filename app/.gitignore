@@ -9,3 +9,4 @@
 /vendor/
 /post_training_content
 ###< symfony/framework-bundle ###
+/post_training_content.zip

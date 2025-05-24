@@ -31,6 +31,10 @@ class TelegramMessageHandler
 
         $user = $this->userRepository->findOneBy(['telegramId' => $chatId]);
 
+        if (!$user) {
+            return;
+        }
+
         if ($user->getSubscriptions()->isEmpty()) {
             return;
         }

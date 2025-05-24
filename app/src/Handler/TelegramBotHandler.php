@@ -165,7 +165,11 @@ class TelegramBotHandler
         $data = $update->getCallbackQuery()->getData();
         $data = json_decode($data);
 
-        if (!property_exists($data, 'type')) {
+        if (is_null($data)) {
+            return;
+        }
+
+        if ($data && !property_exists($data, 'type')) {
             return;
         }
 
@@ -255,9 +259,7 @@ class TelegramBotHandler
         }
 
         if ($step >= $this->telegramService->getCountAllPostByBotName($botUsername)) {
-            $this->telegramMessageService->sendEndMessage($this->settingService->getParameterValue('endMessage'));
-
-            return;
+            $step = 0;
         }
 
         if ($allowedCountPost <= $step) {

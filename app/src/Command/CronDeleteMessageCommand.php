@@ -45,6 +45,7 @@ class CronDeleteMessageCommand extends Command
             if ($messages->isEmpty()) {
                 continue;
             }
+            $io->progressStart($messages->count());
 
             /** @var Message $message */
             foreach ($messages->toArray() as $message) {
@@ -70,11 +71,16 @@ class CronDeleteMessageCommand extends Command
                     $isSend = true;
 
                     $this->entityManager->remove($message);
+                    $this->entityManager->flush();
                 } catch (\Exception $e) {
-                    dd($e->getMessage());
+                    $this->entityManager->remove($message);
                     $this->entityManager->flush();
                 }
+
+                $io->progressAdvance();
             }
+
+            $io->progressFinish();
 
             if ($isSend) {
                 $sendParams = [

@@ -1,0 +1,59 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Поиск Telegram ID{% endblock %}
+
+{% block body %}
+    <section class="home">
+        <div class="container">
+            <div class="home_search">
+                <input type="number" id="telegram-id" placeholder="Telegram ID">
+                <button id="btn-search">Найти</button>
+            </div>
+        </div>
+
+        <div class="result">
+            <div class="not-found container" style="display: none">
+                Пользователь с таким ID не найден в базе данных.
+            </div>
+
+            <div class="user-data container" style="display: none"  >
+                <h5>Информация о пользователе</h5>
+                <p class="telegramId">Telegram ID: <span>1022437660</span></p>
+                <p class="activeSubscription">Подписка активна: <span>Да</span></p>
+                <p class="countSubscription">Общее количество подписок за всё время: <span>5</span></p>
+
+                <div class="subscriptions">
+                    <p>Активные подписки:</p>
+                    <div class="subscription">
+                        <p class="type">Подписка: <span>1 неделя зарядок</span></p>
+                        <p class="endDate">Дата подписки: <span>15.05.2025 12:20</span>
+                    </div>
+                    <div class="subscription">
+                        <p class="type">Подписка: <span>1 неделя зарядок</span></p>
+                        <p class="endDate">Дата окончания подписки: <span>15.05.2025 12:20</span>
+                    </div>
+                </div>
+
+                <p class="endSubscriptionDate">Дата окончания последней подписки: <span>15.05.2025 12:20</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="action" style="display: none">
+            <div class="container">
+                <div class="action-subscription">
+                    <h5>Добавьте или обновите подписку пользователя:</h5>
+                    <div class="action-subscription-wrap">
+                        <select id="rate">
+                            {% for id, label in rates %}
+                                <option value="{{ id }}" {% if loop.first %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <button id="button-add" class="action-subscription-add">Добавить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <input id="token" type="hidden" value="{{ token }}">
+    </section>
+{% endblock %}

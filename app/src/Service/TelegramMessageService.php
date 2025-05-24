@@ -84,7 +84,7 @@ class TelegramMessageService
             [
                 'chat_id' => $chatId,
                 'parse_mode' => 'HTML',
-                'text' => !$user->getSubscriptions()->isEmpty() ? $this->messageActiveSubscription($user) : $this->getStartMessage(),
+                'text' => ($user && !$user->getSubscriptions()->isEmpty()) ? $this->messageActiveSubscription($user) : $this->getStartMessage(),
                 'reply_markup' => json_encode($this->telegramService->startMenuButtons()),
             ]
         );
@@ -135,7 +135,7 @@ class TelegramMessageService
         $response = Request::sendMessage(
             [
                 'chat_id' => $chatId,
-                'text' => !$user->getSubscriptions()->isEmpty() ? $this->messageActiveSubscription($user) : $this->getStartMessage(),
+                'text' => ($user && $user->getSubscriptions()->isEmpty()) ? $this->messageActiveSubscription($user) : $this->getStartMessage(),
                 'reply_markup' => json_encode($inlineKeyboardButton),
                 'parse_mode' => 'HTML',
             ]
@@ -162,7 +162,7 @@ class TelegramMessageService
 
         $subscriptionType = $currentCatalog && $currentCatalog->getSubscriptionType() ? $currentCatalog->getSubscriptionType() : null;
 
-        if ($subscriptionType && !$user->hasActiveSubscription($subscriptionType)) {
+        if ($subscriptionType && !$user?->hasActiveSubscription($subscriptionType)) {
             $rates = $this->rateRepository->findBy(['subscriptionType' => $currentCatalog->getSubscriptionType()]);
 
             foreach ($rates as $rate) {
@@ -209,7 +209,7 @@ class TelegramMessageService
             }
         }
 
-        $defaultText = !$user->getSubscriptions()->isEmpty() ? $this->messageActiveSubscription($user) : $this->getStartMessage();
+        $defaultText = $user && !$user->getSubscriptions()->isEmpty() ? $this->messageActiveSubscription($user) : $this->getStartMessage();
 
         $response = Request::sendMessage([
             'chat_id' => $chatId,

@@ -12,6 +12,7 @@
         "doctrine/orm": "2.15.*",
         "longman/telegram-bot": "^0.81.0",
         "symfony/apache-pack": "^1.0",
+        "symfony/asset": "6.3.*",
         "symfony/console": "6.3.*",
         "symfony/dotenv": "6.3.*",
         "symfony/finder": "6.3.*",
