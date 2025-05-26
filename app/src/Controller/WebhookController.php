@@ -62,6 +62,7 @@ class WebhookController extends AbstractController
             $logger->critical(sprintf('MESSAGE: %s', $e->getMessage()));
             $logger->critical(sprintf('FILE: %s', $e->getFile()));
             $logger->critical(sprintf('LINE: %s', $e->getLine()));
+            $logger->critical(sprintf('TRACE: %s', $e->getTraceAsString()));
         }
 
         return $this->json([
