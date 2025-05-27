@@ -38,7 +38,10 @@ class WebhookController extends AbstractController
         LoggerInterface $logger,
     ): JsonResponse {
         try {
-            $telegramService->getTelegram()->handle();
+            $input = file_get_contents('php://input');
+            $telegram = $telegramService->getTelegram();
+            $telegram->setCustomInput($input);
+            $telegram->handle();
 
             //START MENU
             $telegramBotHandler->handelStartMessage();
