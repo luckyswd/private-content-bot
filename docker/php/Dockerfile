@@ -6,7 +6,14 @@ WORKDIR /var/www/html
 #УСТАНАВЛИВАЕМ COMPOSER
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/bin --filename=composer --quiet
 
-RUN apt-get update && apt-get install -y \
+# Debian Buster ушёл в архив (deb.debian.org отдаёт 404) — переключаем apt на archive.debian.org
+RUN sed -i \
+    -e 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' \
+    -e 's|http://deb.debian.org/debian-security|http://archive.debian.org/debian-security|g' \
+    -e '/buster-updates/d' \
+    /etc/apt/sources.list
+
+RUN apt-get -o Acquire::Check-Valid-Until=false update && apt-get install -y \
     gnupg \
     g++ \
     procps \

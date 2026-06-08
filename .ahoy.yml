@@ -2,20 +2,20 @@ ahoyapi: v2
 commands:
 
     up:
-        cmd: "ahoy stop && docker-compose up --build -d"
+        cmd: "ahoy stop && docker compose up --build -d"
         usage: Create and run docker services.
 
     down:
-        cmd: "docker-compose down $@"
-        usage: Stop the docker-compose containers.
+        cmd: "docker compose down $@"
+        usage: Stop the docker compose containers.
 
     start:
-        cmd: docker-compose start "$@"
+        cmd: docker compose start "$@"
         usage: Start the docker-com stpose containers.
 
     stop:
-        cmd: docker-compose stop "$@"
-        usage: Stop the docker-compose containers.
+        cmd: docker compose stop "$@"
+        usage: Stop the docker compose containers.
 
     console:
         cmd: 'docker exec -it private-content-bot-php bin/console $@'

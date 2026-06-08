@@ -17,6 +17,7 @@ use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Request;
 use Longman\TelegramBot\Telegram;
+use GuzzleHttp\Client;
 
 class TelegramService
 {
@@ -56,6 +57,13 @@ class TelegramService
     public function getTelegram(): Telegram {
         if (!$this->telegram) {
             $this->telegram = new Telegram(getenv('BOT_TOKEN'), getenv('BOT_USERNAME'));
+
+            Request::setClient(new Client([
+                'base_uri' => 'https://api.telegram.org',
+                'timeout' => 30,
+                'connect_timeout' => 10,
+                'force_ip_resolve' => 'v6',
+            ]));
         }
 
         return $this->telegram;
